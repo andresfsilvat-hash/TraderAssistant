@@ -322,7 +322,7 @@ def register_crypto_live(app):
     def crypto_set_symbol():
         payload = request.get_json(silent=True)
         symbol = payload.get("symbol") if isinstance(payload, dict) else None
-        if symbol not in CRYPTO_SYMBOLS:
+        if not isinstance(symbol, str) or symbol not in CRYPTO_SYMBOLS:
             return jsonify({"error": "Par cripto no permitido"}), 400
         _feed.select_symbol(symbol)
         response = jsonify({"status": "ok", "symbol": _feed.snapshot()["symbol"]})
