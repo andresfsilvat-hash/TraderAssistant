@@ -28,6 +28,33 @@ python -m unittest discover -s pruebas -p 'test_reloj_entrada_v5.py' -v
 - Los resultados **no** demuestran precisión predictiva. Sin observaciones autorizadas del instrumento IQ Option y sin validación prospectiva, el campo `operativa_autorizada` es siempre falso.
 - CI incluye todas las pruebas V5 mediante `python -m unittest discover -s pruebas -p \'test_*_v5.py\' -v`.
 
+## Rondas 3 y 4 — Diagnóstico HTTP y entrada de datos auditados
+
+- `engine/estado_v5.py`: agregador puro de estados de REALTIME y del analizador; expone las hipótesis experimentales por horizonte, comprueba símbolo, vigencia de datos y timestamps.
+- `v5_diagnostics.py`: nuevo endpoint GET `/api/v5/estado` integrado en `app.py`, sin modificar gráficos ni realizar órdenes. Los resultados actuales permanecen en `ESPERAR` hasta que exista validación independiente y anticipación demostrada.
+- `pruebas/test_estado_v5.py` y `pruebas/test_api_v5.py`: pruebas de estados y HTTP con Flask, incluidas peticiones de solo lectura y rechazo de POST.
+- `engine/validacion_temporal.py` + `v5_validar_csv.py`: carga de observaciones reproducibles en CSV, duraciones exactas, atribución de fuente y cálculo de aciertos fuera de muestra. No sustituye a registros reales de IQ Option.
+- `pruebas/test_csv_v5.py`: pruebas de formato, fechas, duraciones y acceso de solo lectura.
+
+Para probar el endpoint, en Windows, desde `C:\\Proyectos\\TraderAssistant` tras descargar la rama de desarrollo:
+
+```powershell
+python -m unittest discover -s pruebas -p 'test_*v5.py' -v
+python main.py
+```
+
+Con la aplicación abierta, consultar `http://127.0.0.1:5174/api/v5/estado` en el navegador. Es diagnóstico experimental; no debe usarse como señal de operación.
+
+Para evaluar un CSV proporcionado por el usuario (nunca asumir que IEX liquida NVIDIA Blitz):
+
+```powershell
+python v5_validar_csv.py observaciones.csv --corte-utc 2026-11-23T15:00:00+00:00 --minimo 30 --fuente IQ_OPTION
+```
+
+Columnas CSV: `detectada_utc,entrada_utc,vencimiento_utc,duracion_segundos,direccion,precio_entrada,precio_salida,fuente,payout_neto`. Los timestamps requieren zona horaria y el precio de salida debe corresponder al vencimiento real.
+
+**Bloqueador explícito:** siguen faltando muestras prospectivas verificables de NVIDIA Blitz, su calendario/reglas de expiración y la medición de latencia de interacción del usuario. No es responsable prometer una hora exacta de entrada ni una tasa de acierto mientras falte esa evidencia. La ejecución del módulo de diagnóstico sí es posible, pero el objetivo operativo aún no está validado.
+
 ## Hallazgos de la auditoría del proyecto actual
 
 1. `decision_engine_experimental.py` admite horizontes 60/120/300/600, pero todavía no 30 segundos; su decisión operativa permanece **ESPERAR**.
