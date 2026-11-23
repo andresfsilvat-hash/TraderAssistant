@@ -137,9 +137,7 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
   <div class="brand">TRADERASSISTANT <small id="asset-brand">NVIDIA (NVDA) · datos Alpaca IEX</small></div>
   <div class="toolbar"><label class="assetSelect" for="symbol-select">Analizar:
     <select id="symbol-select" aria-label="Elegir activo">
-      <option value="NVDA">NVIDIA · NVDA</option><option value="SPY">S&P 500 · SPY</option>
-      <option value="QQQ">Nasdaq 100 · QQQ</option><option value="MSFT">Microsoft · MSFT</option>
-      <option value="AAPL">Apple · AAPL</option><option value="AMD">AMD</option>
+      <option value="NVDA">NVIDIA · NVDA</option>
     </select></label><span id="symbol-error"></span><span class="pill"><span class="dot" id="dot"></span><span id="connection">Conectando…</span></span><span class="liveFlag" id="delivery">Canal: conectando</span><span class="liveFlag" id="version">v4.0.0</span><a class="back" href="/">Ir al analizador histórico</a></div>
 </header>
 <main class="content">
@@ -670,8 +668,32 @@ function drawData(data) {
   drawClock(data);
 }
 
+// El servidor es la única fuente del catálogo: opciones sin editar HTML cada vez.
+let symbolCatalogSignature='';
+function renderSymbolCatalog(symbols){
+  if(!symbols||typeof symbols!=='object'||Array.isArray(symbols))return;
+  const entries=Object.entries(symbols).filter(([key,name])=>
+    /^[A-Z]{1,6}$/.test(key)&&typeof name==='string'&&name.trim());
+  if(!entries.length)return;
+  const signature=JSON.stringify(entries);
+  if(signature===symbolCatalogSignature)return;
+  const select=$('symbol-select');
+  const chosen=activeSymbol;
+  const group=document.createElement('optgroup');
+  group.label='Acciones y ETF EE. UU. · horario bursátil';
+  for(const [ticker,name] of entries){
+    const option=document.createElement('option');
+    option.value=ticker;
+    option.textContent=name+' · '+ticker;
+    group.appendChild(option);
+  }
+  select.replaceChildren(group);
+  select.value=chosen;
+  symbolCatalogSignature=signature;
+}
 function drawClock(data) {
   if(!data)return;
+  renderSymbolCatalog(data.available_symbols);
   marketClock=data.market_clock||null;
   renderMarketClock();
   const now=Date.now();
