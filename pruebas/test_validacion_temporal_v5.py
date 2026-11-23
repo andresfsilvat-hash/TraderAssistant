@@ -10,7 +10,7 @@ BASE = datetime(2026, 11, 23, 15, 0, tzinfo=timezone.utc)
 def obs(n, *, horizon=30, direction="SUBE", entry=100.0, exit=101.0,
         payout=0.8, source="IEX"):
     start = BASE + timedelta(minutes=n)
-    return Observacion(start - timedelta(seconds=10), start,
+    return Observacion(start, start,
                        start + timedelta(seconds=horizon), horizon,
                        direction, entry, exit, source, payout)
 
