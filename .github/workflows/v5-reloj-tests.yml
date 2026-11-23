@@ -18,7 +18,11 @@ on:
 
 jobs:
   reloj:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,3 +34,15 @@ jobs:
         run: python -m compileall -q engine v5_diagnostics.py v5_validar_csv.py app.py pruebas/test_reloj_entrada_v5.py pruebas/test_validacion_temporal_v5.py pruebas/test_estado_v5.py pruebas/test_api_v5.py
       - name: Ejecutar pruebas unitarias V5
         run: python -m unittest discover -s pruebas -p 'test_*v5.py' -v
+
+  regresion_v4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar dependencias del proyecto
+        run: python -m pip install -r requirements.txt
+      - name: Ejecutar pruebas existentes V4 y V5
+        run: python -m unittest discover -s pruebas -p 'test_*.py' -v
