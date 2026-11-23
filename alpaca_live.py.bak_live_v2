@@ -1,0 +1,227 @@
+"""Read-only Alpaca IEX market stream for TraderAssistant.
+
+Only the market-data endpoints below are contacted. The paper trading Endpoint
+in the text file is deliberately never used to place orders or access accounts.
+Credentials remain in the local Documents folder and are never returned by Flask.
+"""
+from __future__ import annotations
+
+import json
+import threading
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import requests
+from flask import jsonify, send_from_directory
+from websockets.sync.client import connect
+
+SYMBOL = "NVDA"
+FEED = "iex"
+WEBSOCKET_URL = "wss://stream.data.alpaca.markets/v2/iex"
+HISTORY_URL = "https://data.alpaca.markets/v2/stocks/NVDA/bars"
+KEY_FILE = Path.home() / "Documents" / "Alpaca_key.txt"
+MAX_BARS = 450
+
+
+def _credentials():
+    """Parse a three-label plaintext file; never print or return the secrets."""
+    if not KEY_FILE.is_file():
+        raise FileNotFoundError("No se encuentra Alpaca_key.txt en Documentos.")
+    lines = [s.strip() for s in KEY_FILE.read_text(encoding="utf-8-sig").splitlines()]
+    fields = {}
+    for i in range(len(lines) - 1):
+        label = lines[i].lower().rstrip(":")
+        if label in ("endpoint", "key", "secret"):
+            fields[label] = lines[i + 1]
+    if not fields.get("key") or not fields.get("secret"):
+        raise ValueError("El archivo debe incluir Key y Secret, cada uno en su propia linea.")
+    # Do not trust a user-supplied URL as a network destination.
+    return fields["key"], fields["secret"]
+
+
+def _as_unix(value):
+    # Alpaca timestamps may include up to 9 subsecond digits.
+    return int(datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp())
+
+
+def _bar(data):
+    return {
+        "time": _as_unix(data["t"]),
+        "open": float(data["o"]),
+        "high": float(data["h"]),
+        "low": float(data["l"]),
+        "close": float(data["c"]),
+        "volume": int(data.get("v", 0)),
+    }
+
+
+class LiveFeed:
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.started = False
+        self.status = "sin_iniciar"
+        self.error = None
+        self.history_error = None
+        self.bars = []
+        self.last_trade = None
+        self.last_received_at = None
+
+    def set_status(self, status, error=None):
+        with self.lock:
+            self.status, self.error = status, error
+
+    def start(self):
+        with self.lock:
+            if self.started:
+                return
+            self.started = True
+            self.status = "iniciando"
+        threading.Thread(target=self.run, name="alpaca-market-data-iex", daemon=True).start()
+
+    def snapshot(self):
+        with self.lock:
+            return {
+                "symbol": SYMBOL,
+                "feed": FEED,
+                "status": self.status,
+                "error": self.error,
+                "history_error": self.history_error,
+                "candles": list(self.bars[-MAX_BARS:]),
+                "last_trade": dict(self.last_trade) if self.last_trade else None,
+                "last_received_at": self.last_received_at,
+                "server_time": datetime.now(timezone.utc).isoformat(),
+            }
+
+    def insert_bar(self, bar):
+        with self.lock:
+            existing = next((i for i, b in enumerate(self.bars) if b["time"] == bar["time"]), None)
+            if existing is not None:
+                self.bars[existing] = bar
+            else:
+                self.bars.append(bar)
+                self.bars.sort(key=lambda b: b["time"])
+                self.bars = self.bars[-MAX_BARS:]
+
+    def on_trade(self, obj):
+        if obj.get("S") != SYMBOL:
+            return
+        try:
+            price = float(obj["p"])
+            size = int(obj.get("s", 0))
+            trade_at = obj["t"]
+            minute = (_as_unix(trade_at) // 60) * 60
+        except (KeyError, ValueError, TypeError, OverflowError):
+            return
+        with self.lock:
+            self.last_trade = {"price": price, "timestamp": trade_at, "size": size}
+            self.last_received_at = datetime.now(timezone.utc).isoformat()
+            if self.bars and minute < self.bars[-1]["time"]:
+                return
+            if self.bars and minute == self.bars[-1]["time"]:
+                b = self.bars[-1]
+                b["high"] = max(b["high"], price)
+                b["low"] = min(b["low"], price)
+                b["close"] = price
+                b["volume"] += max(0, size)
+            else:
+                self.bars.append({"time": minute, "open": price, "high": price,
+                                  "low": price, "close": price, "volume": max(0, size)})
+                self.bars = self.bars[-MAX_BARS:]
+
+    def history(self, key, secret):
+        # The IEX endpoint returns actual IEX bars, consistent with the live stream.
+        start = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        try:
+            response = requests.get(
+                HISTORY_URL,
+                headers={"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret},
+                params={"timeframe": "1Min", "feed": FEED, "start": start,
+                        "limit": 1000, "adjustment": "raw"},
+                timeout=20,
+            )
+            if not response.ok:
+                raise RuntimeError(f"HTTP {response.status_code} en historial IEX")
+            items = [_bar(d) for d in response.json().get("bars", [])]
+            with self.lock:
+                # Don't overwrite bars that were already populated by a websocket trade.
+                existing = {b["time"]: b for b in self.bars}
+                existing.update({b["time"]: b for b in items if b["time"] not in existing})
+                self.bars = sorted(existing.values(), key=lambda b: b["time"])[-MAX_BARS:]
+        except (requests.RequestException, ValueError, RuntimeError) as err:
+            # Never include a URL, headers, request object, or secrets in error text.
+            with self.lock:
+                self.history_error = (f"No se pudo cargar el historial IEX ({type(err).__name__}). "
+                                      "El flujo en vivo puede seguir funcionando.")
+
+    def run(self):
+        try:
+            key, secret = _credentials()
+        except (OSError, ValueError) as err:
+            self.set_status("error", str(err))
+            return
+        self.history(key, secret)
+        while True:
+            try:
+                self.set_status("conectando")
+                with connect(WEBSOCKET_URL, open_timeout=12, ping_interval=20,
+                             ping_timeout=20, max_size=1048576) as ws:
+                    ws.send(json.dumps({"action": "auth", "key": key, "secret": secret}))
+                    authenticated = False
+                    for payload in ws:
+                        try:
+                            messages = json.loads(payload)
+                        except (ValueError, TypeError):
+                            continue
+                        if not isinstance(messages, list):
+                            continue
+                        for obj in messages:
+                            if not isinstance(obj, dict):
+                                continue
+                            kind = obj.get("T")
+                            if kind == "success" and obj.get("msg") == "authenticated":
+                                authenticated = True
+                                ws.send(json.dumps({"action": "subscribe", "trades": [SYMBOL],
+                                                    "bars": [SYMBOL]}))
+                            elif kind == "subscription" and authenticated:
+                                if SYMBOL in obj.get("trades", []):
+                                    self.set_status("conectado")
+                                else:
+                                    self.set_status("error", "Suscripcion a NVDA no confirmada.")
+                            elif kind == "error":
+                                code = obj.get("code")
+                                # Avoid reflecting arbitrary remote strings into the browser.
+                                if code in (402, 409):
+                                    self.set_status("error", "Alpaca rechazo autenticacion o acceso al feed IEX.")
+                                    return
+                                if code == 406:
+                                    self.set_status("error", "Ya hay otra conexion al flujo de datos Alpaca.")
+                                    return
+                                self.set_status("error", f"Alpaca devolvio error {code}.")
+                            elif kind == "t":
+                                self.on_trade(obj)
+                            elif kind in ("b", "u") and obj.get("S") == SYMBOL:
+                                try:
+                                    self.insert_bar(_bar(obj))
+                                except (KeyError, ValueError, TypeError, OverflowError):
+                                    continue
+            except Exception:
+                # Do not expose exception text, which can contain connection details.
+                self.set_status("reconectando", "Conexion interrumpida; se intentara reconectar.")
+            time.sleep(5)
+
+
+_feed = LiveFeed()
+
+
+def register_live(app):
+    @app.route("/live")
+    def alpaca_live_page():
+        return send_from_directory(app.static_folder, "live.html")
+
+    @app.route("/api/alpaca/live", methods=["GET"])
+    def alpaca_live_state():
+        _feed.start()
+        response = jsonify(_feed.snapshot())
+        response.headers["Cache-Control"] = "no-store"
+        return response

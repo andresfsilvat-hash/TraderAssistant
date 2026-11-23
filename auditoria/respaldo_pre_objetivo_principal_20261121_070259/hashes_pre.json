@@ -1,0 +1,25 @@
+﻿{
+    "created_ecuador":  "2026-11-21T07:02:59.7915377-05:00",
+    "purpose":  "Respaldo previo a completar objetivo principal",
+    "files":  {
+                  "simulador_prospectivo_nvda_2min.py":  "AFB0DC9BC2C19E5ECA0F2C4F77907D4E578BC21070D0F511ACDABA735832F513",
+                  "pruebas\\test_validacion_prospectiva_multihorizonte.py":  "D31E9264F8EA432DA3016D1117F3F95C22D52F207D0789C1E1D64E05AEE50699",
+                  "validar_prospectivo_multihorizonte.py":  "6B6BC26275AFDE22BE575117C84B99F46E96DEA4F9072828955A476D82401FEF",
+                  "ui\\live.html":  "28A41FB57B0B4503B17642150209EB8471F77A1B715570F94569E7E15EE0CD84",
+                  "decision_engine_experimental.py":  "281672571316016EF0974D3C2D47A6855DF4E8607E0CEE301B36538D019BCF2C",
+                  "pruebas\\probar_analysis_live.py":  "361C777FF433544DBC7D237C2BFC0C5546D139F2554707F1D1410AD096AF40CF",
+                  "pruebas\\test_simulador_prospectivo_nvda_2min.py":  "F53D6A8AAA10F9D8CD65562369E1FD58CA5326BB845E40AFEA2A6AF8648E0B7D",
+                  "pruebas\\test_fase6_multihorizonte.py":  "6D489DD661789DAC4F3C1124A6DC965F75904216E8AA9433F983C249077E2768",
+                  "pruebas\\probar_analysis_ui.js":  "257D69EF2FB83D00D05DB60C7921D2E1ED730463D895AAE622A1F41113C220D4",
+                  "simulation_results.py":  "C15869F63BC5D68D0F68E54303E48AD0AEC7D20CF7A7B342B06AF729BF75AE05",
+                  "analysis_live.py":  "D1FFBD23EC85FF2B41BAC7F5F5751F433A5BCB1D8031421E1B466829A486250A"
+              },
+    "protected":  {
+                      "main.py":  "67CD9EC723DAAB05E1B498FD765F46763FCA90E320C6D1AE99F7CC9AC08BE2DC",
+                      "screener\\pattern_detector.py":  "B10B67AB5DFEEDADD0DF1F73F19235182C7AFFD546D1981234895868FD894546",
+                      "screener\\indicator_detector.py":  "5CCBB66A3E5CFF85B08941C5E241CC0B6717990042F4A09B299694706C3CC7E0",
+                      "screener\\scorer.py":  "99AE7B48DE29D6B5DF0CC2CEB4E2710655983518F139DDF335A331D82D142190",
+                      "app.py":  "820FFBCC43B53C1AEAFBD1BA920BC1203B4D39BF4CB1A6D3AE855A50FD7ED51A",
+                      "alpaca_live.py":  "10BA6B883803C5E1DB04666B3855B70542C47C47F16E544D9B8D2D501EBB8127"
+                  }
+}

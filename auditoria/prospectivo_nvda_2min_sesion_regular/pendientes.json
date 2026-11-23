@@ -1,0 +1,21 @@
+[
+  {
+    "id": "c006071a14e3472e894f608183356a9e",
+    "activo": "NVDA",
+    "direccion_hipotetica": "SUBE",
+    "sesgo": "Alcista",
+    "velas_base_utc": "2026-11-19T15:22:00+00:00",
+    "senal_detectada_utc": "2026-11-19T15:23:02.128257+00:00",
+    "entrada_utc": "2026-11-19T15:23:06.969107+00:00",
+    "precio_entrada_iex": 154.03,
+    "vencimiento_objetivo_utc": "2026-11-19T15:25:06.969107+00:00",
+    "salida_utc": "",
+    "precio_salida_iex": "",
+    "desfase_salida_segundos": "",
+    "resultado": "",
+    "indicadores": "{\"bollinger_lower\": 153.948547, \"bollinger_middle\": 155.24, \"bollinger_upper\": 156.531453, \"close\": 154.0, \"macd_12_26\": -0.41727, \"macd_histogram\": -0.130785, \"macd_signal_9\": -0.286485, \"rsi_14\": 30.368124}",
+    "motivo": "Evidencia alcista: Lower BB mean-reversion (1m, 15:22). Interpretación técnica; no es señal de entrada.",
+    "estatus": "pendiente_entrada",
+    "nota": "HIPOTESIS EXPERIMENTAL, SIN VALIDEZ OPERATIVA"
+  }
+]

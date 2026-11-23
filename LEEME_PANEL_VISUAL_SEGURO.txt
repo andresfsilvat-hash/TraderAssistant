@@ -1,0 +1,30 @@
+TraderAssistant - PANEL VISUAL SEGURO (observación)
+
+Este ZIP fue preparado a partir de TraderAssistant(1).zip del 18/11/2026.
+No contiene ni sustituye motores de realtime. Solo el instalador modifica
+ui/live.html si este coincide EXACTAMENTE con el hash auditado.
+
+Instalación:
+1. Cierre TraderAssistant y detenga Python con Ctrl+C.
+2. Descargue este ZIP en Descargas.
+3. Abra PowerShell:
+   cd C:\Proyectos\TraderAssistant
+   Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\TraderAssistant_Panel_Visual_Seguro.zip" -DestinationPath "C:\Proyectos\TraderAssistant" -Force
+   .\venv\Scripts\python.exe .\instalar_panel_visual_seguro.py --verificar
+   .\venv\Scripts\python.exe .\instalar_panel_visual_seguro.py --instalar
+   .\venv\Scripts\python.exe .\main.py
+
+Restauración (con la aplicación cerrada):
+   .\venv\Scripts\python.exe .\instalar_panel_visual_seguro.py --restaurar
+
+Si el instalador se detiene por incompatibilidad, NO usar -Force ni copiar
+manualmente el HTML. Se deberá auditar la copia local actual.
+
+IMPORTANTE: el panel NO genera recomendaciones de entrada ni vencimientos.
+La etiqueta "ESPERAR" es fija hasta que una estrategia haya sido validada.
+Solo muestra de manera descriptiva la dirección de la última vela oficial
+cerrada de 1 minuto que ya entrega Alpaca, sin consultas adicionales.
+No hay llamadas HTTP nuevas, procesos, hilos ni temporizadores adicionales.
+
+Informe independiente (no instalado):
+  auditoria/Informe_Auditoria_TraderAssistant_Copia_Restaurada_2026-11-18.md

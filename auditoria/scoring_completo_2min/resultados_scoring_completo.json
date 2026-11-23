@@ -1,0 +1,361 @@
+{
+  "version": "1.0.0",
+  "input_file": "nvda_iex_1min_20261118_213505_280555.csv",
+  "sha256": "d2e79dae5d3d77543725c12fe8b14631369dc7345637f4308bf8e726a35d82bb",
+  "quality": {
+    "velas_recibidas": 25221,
+    "velas_regular": 24566,
+    "velas_fuera_sesion": 655,
+    "velas_duplicadas": 0,
+    "dias": 63,
+    "dias_faltantes_parciales": 4,
+    "minutos_faltantes_regular": 4
+  },
+  "context": {
+    "daily_complete_bars": 59,
+    "hourly_complete_bars": 374,
+    "daily_signal_snapshots": 59,
+    "hourly_signal_snapshots": 374
+  },
+  "split": {
+    "train_days": 40,
+    "test_days": 23,
+    "train_first": "2026-08-21",
+    "train_last": "2026-10-16",
+    "test_first": "2026-10-19",
+    "test_last": "2026-11-18"
+  },
+  "contract": {
+    "source": "Alpaca IEX 1m; NO IQ Option",
+    "horizon_seconds": 120,
+    "entry_proxy": "open próxima vela 1m al cierre de señal, ejecución perfecta NO garantizada",
+    "exit_proxy": "open vela en t+120 segundos",
+    "indicator_timeframes": "1m RTH, 1h RTH cerrada, daily RTH COMPLETA de sesiones anteriores",
+    "original_scorer": "score_tickers importado SIN MODIFICAR",
+    "policy_original": "scorer Daily+1h, entra solo cuando cambia de 0 o de lado; evita mantener señal cada minuto",
+    "policy_full": "scorer Daily+1h+1m; requiere nueva señal 1m y resultado distinto de 0",
+    "policy_minute": "scorer 1m, conservando confirmación volumen 1h y filtro SMA50 diario",
+    "hour_definition": "solo bloques COMPLETOS de 60min desde 9:30 NY; el tramo 15:30-16:00 no se usa como 1h",
+    "note": "resultados retrospectivos, último periodo ya estudiado antes, no validación ciega"
+  },
+  "strategies": {
+    "original_daily_1h_cambio": {
+      "development": {
+        "cases": 55,
+        "wins": 28,
+        "losses": 26,
+        "ties": 1,
+        "accuracy_pct": 50.91,
+        "always_sube_same_cases_pct": 45.45,
+        "paired_last_candle_n": 53,
+        "paired_scorer_accuracy_pct": 49.06,
+        "paired_last_candle_accuracy_pct": 58.49,
+        "unique_sessions": 35,
+        "score_distribution": {
+          "1": 35,
+          "2": 16,
+          "3": 4
+        },
+        "directions": {
+          "sube": 22,
+          "baja": 33
+        },
+        "bootstrap_by_day": {
+          "accuracy_ci_95_pct": [
+            38.09,
+            63.55
+          ],
+          "delta_vs_sube_ci_95_pp": [
+            -16.67,
+            26.86
+          ]
+        },
+        "full_macro_context_only": {
+          "cases": 0,
+          "wins": 0,
+          "losses": 0,
+          "ties": 0,
+          "accuracy_pct": null,
+          "always_sube_same_cases_pct": null,
+          "paired_last_candle_n": 0,
+          "paired_scorer_accuracy_pct": null,
+          "paired_last_candle_accuracy_pct": null,
+          "unique_sessions": 0,
+          "score_distribution": {},
+          "directions": {
+            "sube": 0,
+            "baja": 0
+          }
+        }
+      },
+      "later": {
+        "cases": 34,
+        "wins": 17,
+        "losses": 16,
+        "ties": 1,
+        "accuracy_pct": 50.0,
+        "always_sube_same_cases_pct": 50.0,
+        "paired_last_candle_n": 34,
+        "paired_scorer_accuracy_pct": 50.0,
+        "paired_last_candle_accuracy_pct": 52.94,
+        "unique_sessions": 22,
+        "score_distribution": {
+          "1": 20,
+          "2": 10,
+          "3": 3,
+          "4": 1
+        },
+        "directions": {
+          "sube": 24,
+          "baja": 10
+        },
+        "bootstrap_by_day": {
+          "accuracy_ci_95_pct": [
+            29.03,
+            68.75
+          ],
+          "delta_vs_sube_ci_95_pp": [
+            -19.3,
+            16.22
+          ]
+        },
+        "full_macro_context_only": {
+          "cases": 13,
+          "wins": 5,
+          "losses": 8,
+          "ties": 0,
+          "accuracy_pct": 38.46,
+          "always_sube_same_cases_pct": 53.85,
+          "paired_last_candle_n": 13,
+          "paired_scorer_accuracy_pct": 38.46,
+          "paired_last_candle_accuracy_pct": 46.15,
+          "unique_sessions": 9,
+          "score_distribution": {
+            "1": 7,
+            "2": 2,
+            "3": 3,
+            "4": 1
+          },
+          "directions": {
+            "sube": 11,
+            "baja": 2
+          }
+        }
+      }
+    },
+    "completo_1m_disparador": {
+      "development": {
+        "cases": 3066,
+        "wins": 1508,
+        "losses": 1513,
+        "ties": 45,
+        "accuracy_pct": 49.18,
+        "always_sube_same_cases_pct": 49.58,
+        "paired_last_candle_n": 2875,
+        "paired_scorer_accuracy_pct": 49.01,
+        "paired_last_candle_accuracy_pct": 47.79,
+        "unique_sessions": 40,
+        "score_distribution": {
+          "1": 1577,
+          "2": 1030,
+          "3": 357,
+          "4": 95,
+          "5": 7
+        },
+        "directions": {
+          "sube": 1519,
+          "baja": 1547
+        },
+        "bootstrap_by_day": {
+          "accuracy_ci_95_pct": [
+            47.6,
+            50.85
+          ],
+          "delta_vs_sube_ci_95_pp": [
+            -2.54,
+            1.84
+          ]
+        },
+        "full_macro_context_only": {
+          "cases": 0,
+          "wins": 0,
+          "losses": 0,
+          "ties": 0,
+          "accuracy_pct": null,
+          "always_sube_same_cases_pct": null,
+          "paired_last_candle_n": 0,
+          "paired_scorer_accuracy_pct": null,
+          "paired_last_candle_accuracy_pct": null,
+          "unique_sessions": 0,
+          "score_distribution": {},
+          "directions": {
+            "sube": 0,
+            "baja": 0
+          }
+        }
+      },
+      "later": {
+        "cases": 1573,
+        "wins": 772,
+        "losses": 787,
+        "ties": 14,
+        "accuracy_pct": 49.08,
+        "always_sube_same_cases_pct": 49.78,
+        "paired_last_candle_n": 1518,
+        "paired_scorer_accuracy_pct": 49.41,
+        "paired_last_candle_accuracy_pct": 47.89,
+        "unique_sessions": 23,
+        "score_distribution": {
+          "1": 526,
+          "2": 540,
+          "3": 283,
+          "4": 154,
+          "5": 62,
+          "6": 8
+        },
+        "directions": {
+          "sube": 1229,
+          "baja": 344
+        },
+        "bootstrap_by_day": {
+          "accuracy_ci_95_pct": [
+            47.77,
+            50.61
+          ],
+          "delta_vs_sube_ci_95_pp": [
+            -2.05,
+            0.75
+          ]
+        },
+        "full_macro_context_only": {
+          "cases": 702,
+          "wins": 347,
+          "losses": 351,
+          "ties": 4,
+          "accuracy_pct": 49.43,
+          "always_sube_same_cases_pct": 49.43,
+          "paired_last_candle_n": 692,
+          "paired_scorer_accuracy_pct": 49.42,
+          "paired_last_candle_accuracy_pct": 47.83,
+          "unique_sessions": 9,
+          "score_distribution": {
+            "1": 202,
+            "2": 200,
+            "3": 136,
+            "4": 121,
+            "5": 39,
+            "6": 4
+          },
+          "directions": {
+            "sube": 658,
+            "baja": 44
+          }
+        }
+      }
+    },
+    "solo_1m_con_filtros": {
+      "development": {
+        "cases": 3319,
+        "wins": 1607,
+        "losses": 1663,
+        "ties": 49,
+        "accuracy_pct": 48.42,
+        "always_sube_same_cases_pct": 49.62,
+        "paired_last_candle_n": 3124,
+        "paired_scorer_accuracy_pct": 48.27,
+        "paired_last_candle_accuracy_pct": 48.3,
+        "unique_sessions": 40,
+        "score_distribution": {
+          "1": 2405,
+          "2": 815,
+          "3": 94,
+          "4": 5
+        },
+        "directions": {
+          "sube": 1686,
+          "baja": 1633
+        },
+        "bootstrap_by_day": {
+          "accuracy_ci_95_pct": [
+            46.58,
+            50.34
+          ],
+          "delta_vs_sube_ci_95_pp": [
+            -3.58,
+            1.34
+          ]
+        },
+        "full_macro_context_only": {
+          "cases": 0,
+          "wins": 0,
+          "losses": 0,
+          "ties": 0,
+          "accuracy_pct": null,
+          "always_sube_same_cases_pct": null,
+          "paired_last_candle_n": 0,
+          "paired_scorer_accuracy_pct": null,
+          "paired_last_candle_accuracy_pct": null,
+          "unique_sessions": 0,
+          "score_distribution": {},
+          "directions": {
+            "sube": 0,
+            "baja": 0
+          }
+        }
+      },
+      "later": {
+        "cases": 1557,
+        "wins": 765,
+        "losses": 773,
+        "ties": 19,
+        "accuracy_pct": 49.13,
+        "always_sube_same_cases_pct": 50.1,
+        "paired_last_candle_n": 1504,
+        "paired_scorer_accuracy_pct": 49.34,
+        "paired_last_candle_accuracy_pct": 48.8,
+        "unique_sessions": 23,
+        "score_distribution": {
+          "1": 1081,
+          "2": 419,
+          "3": 54,
+          "4": 3
+        },
+        "directions": {
+          "sube": 665,
+          "baja": 892
+        },
+        "bootstrap_by_day": {
+          "accuracy_ci_95_pct": [
+            46.33,
+            51.75
+          ],
+          "delta_vs_sube_ci_95_pp": [
+            -5.35,
+            2.76
+          ]
+        },
+        "full_macro_context_only": {
+          "cases": 552,
+          "wins": 263,
+          "losses": 282,
+          "ties": 7,
+          "accuracy_pct": 47.64,
+          "always_sube_same_cases_pct": 51.27,
+          "paired_last_candle_n": 540,
+          "paired_scorer_accuracy_pct": 47.59,
+          "paired_last_candle_accuracy_pct": 48.7,
+          "unique_sessions": 9,
+          "score_distribution": {
+            "1": 450,
+            "2": 95,
+            "3": 7
+          },
+          "directions": {
+            "sube": 139,
+            "baja": 413
+          }
+        }
+      }
+    }
+  }
+}

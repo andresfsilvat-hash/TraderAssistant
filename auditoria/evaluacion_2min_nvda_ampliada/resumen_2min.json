@@ -1,0 +1,648 @@
+{
+  "evaluator_version": "offline-2min-1.0",
+  "generated_at_utc": "2026-11-18T21:36:48.667265+00:00",
+  "horizon_nominal_seconds": 120,
+  "signal_source": "Original detect_patterns + detect_indicators + _classify",
+  "real_trade_eligible": false,
+  "payout_scenario": null,
+  "break_even_pct": null,
+  "results": {
+    "NVDA": {
+      "source": {
+        "path": "C:\\Proyectos\\TraderAssistant\\auditoria\\historico_nvda_iex\\nvda_iex_1min_20261118_213505_280555.csv",
+        "feed": "CSV (origen externo, no verificado)"
+      },
+      "validation": {
+        "received": 25221,
+        "invalid": 0,
+        "duplicates": 0,
+        "provisional": 0,
+        "unaligned": 0
+      },
+      "counts": {
+        "bars_all": 25221,
+        "bars_regular": 24566,
+        "analysis_points": 24401,
+        "no_signal": 12828,
+        "contradictory": 753,
+        "skip_missing_exit": 36,
+        "skip_cross_session": 126,
+        "candidates_with_outcome": 10784,
+        "excluded_overlap": 3617
+      },
+      "summary": {
+        "sessions": [
+          "2026-08-21",
+          "2026-08-24",
+          "2026-08-25",
+          "2026-08-26",
+          "2026-08-27",
+          "2026-08-28",
+          "2026-08-31",
+          "2026-09-01",
+          "2026-09-02",
+          "2026-09-03",
+          "2026-09-04",
+          "2026-09-08",
+          "2026-09-09",
+          "2026-09-10",
+          "2026-09-11",
+          "2026-09-14",
+          "2026-09-15",
+          "2026-09-16",
+          "2026-09-17",
+          "2026-09-18",
+          "2026-09-21",
+          "2026-09-22",
+          "2026-09-23",
+          "2026-09-24",
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30",
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21",
+          "2026-10-22",
+          "2026-10-23",
+          "2026-10-26",
+          "2026-10-27",
+          "2026-10-28",
+          "2026-10-29",
+          "2026-10-30",
+          "2026-11-02",
+          "2026-11-03",
+          "2026-11-04",
+          "2026-11-05",
+          "2026-11-06",
+          "2026-11-09",
+          "2026-11-10",
+          "2026-11-11",
+          "2026-11-12",
+          "2026-11-13",
+          "2026-11-16",
+          "2026-11-17",
+          "2026-11-18"
+        ],
+        "session_count": 63,
+        "evidence_level": "DESCRIPTIVO_NO_VALIDADO",
+        "required_sessions_for_first_review": 5,
+        "note": "No es validación fuera de muestra. No demuestra rentabilidad o capacidad predictiva.",
+        "all_signal_events_including_overlap": 10784,
+        "selected_nonoverlap_events": 7167,
+        "metrics": {
+          "total": {
+            "evaluated": 7167,
+            "wins": 3530,
+            "losses": 3549,
+            "ties": 88,
+            "accuracy_pct_ties_as_not_wins": 49.25,
+            "baseline_last_candle_accuracy_pct": 47.27
+          },
+          "SUBE": {
+            "evaluated": 3718,
+            "wins": 1853,
+            "losses": 1822,
+            "ties": 43,
+            "accuracy_pct_ties_as_not_wins": 49.84,
+            "baseline_last_candle_accuracy_pct": 48.25
+          },
+          "BAJA": {
+            "evaluated": 3449,
+            "wins": 1677,
+            "losses": 1727,
+            "ties": 45,
+            "accuracy_pct_ties_as_not_wins": 48.62,
+            "baseline_last_candle_accuracy_pct": 46.22
+          }
+        },
+        "by_session": {
+          "2026-08-21": {
+            "evaluated": 99,
+            "wins": 46,
+            "losses": 51,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 46.46,
+            "baseline_last_candle_accuracy_pct": 47.47
+          },
+          "2026-08-24": {
+            "evaluated": 121,
+            "wins": 57,
+            "losses": 64,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 47.11,
+            "baseline_last_candle_accuracy_pct": 51.24
+          },
+          "2026-08-25": {
+            "evaluated": 108,
+            "wins": 51,
+            "losses": 56,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 47.22,
+            "baseline_last_candle_accuracy_pct": 52.78
+          },
+          "2026-08-26": {
+            "evaluated": 112,
+            "wins": 57,
+            "losses": 53,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 50.89,
+            "baseline_last_candle_accuracy_pct": 46.43
+          },
+          "2026-08-27": {
+            "evaluated": 116,
+            "wins": 66,
+            "losses": 50,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 56.9,
+            "baseline_last_candle_accuracy_pct": 55.17
+          },
+          "2026-08-28": {
+            "evaluated": 127,
+            "wins": 57,
+            "losses": 67,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 44.88,
+            "baseline_last_candle_accuracy_pct": 44.88
+          },
+          "2026-08-31": {
+            "evaluated": 121,
+            "wins": 63,
+            "losses": 54,
+            "ties": 4,
+            "accuracy_pct_ties_as_not_wins": 52.07,
+            "baseline_last_candle_accuracy_pct": 46.28
+          },
+          "2026-09-01": {
+            "evaluated": 123,
+            "wins": 65,
+            "losses": 53,
+            "ties": 5,
+            "accuracy_pct_ties_as_not_wins": 52.85,
+            "baseline_last_candle_accuracy_pct": 53.66
+          },
+          "2026-09-02": {
+            "evaluated": 119,
+            "wins": 53,
+            "losses": 63,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 44.54,
+            "baseline_last_candle_accuracy_pct": 45.38
+          },
+          "2026-09-03": {
+            "evaluated": 108,
+            "wins": 51,
+            "losses": 57,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 47.22,
+            "baseline_last_candle_accuracy_pct": 50.93
+          },
+          "2026-09-04": {
+            "evaluated": 108,
+            "wins": 41,
+            "losses": 66,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 37.96,
+            "baseline_last_candle_accuracy_pct": 42.59
+          },
+          "2026-09-08": {
+            "evaluated": 120,
+            "wins": 66,
+            "losses": 53,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 55.0,
+            "baseline_last_candle_accuracy_pct": 46.67
+          },
+          "2026-09-09": {
+            "evaluated": 117,
+            "wins": 50,
+            "losses": 65,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 42.74,
+            "baseline_last_candle_accuracy_pct": 40.17
+          },
+          "2026-09-10": {
+            "evaluated": 118,
+            "wins": 52,
+            "losses": 63,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 44.07,
+            "baseline_last_candle_accuracy_pct": 47.46
+          },
+          "2026-09-11": {
+            "evaluated": 118,
+            "wins": 61,
+            "losses": 57,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 51.69,
+            "baseline_last_candle_accuracy_pct": 49.15
+          },
+          "2026-09-14": {
+            "evaluated": 120,
+            "wins": 66,
+            "losses": 52,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 55.0,
+            "baseline_last_candle_accuracy_pct": 50.0
+          },
+          "2026-09-15": {
+            "evaluated": 104,
+            "wins": 50,
+            "losses": 52,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 48.08,
+            "baseline_last_candle_accuracy_pct": 40.38
+          },
+          "2026-09-16": {
+            "evaluated": 118,
+            "wins": 47,
+            "losses": 69,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 39.83,
+            "baseline_last_candle_accuracy_pct": 44.07
+          },
+          "2026-09-17": {
+            "evaluated": 110,
+            "wins": 58,
+            "losses": 51,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 52.73,
+            "baseline_last_candle_accuracy_pct": 38.18
+          },
+          "2026-09-18": {
+            "evaluated": 108,
+            "wins": 56,
+            "losses": 51,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 51.85,
+            "baseline_last_candle_accuracy_pct": 48.15
+          },
+          "2026-09-21": {
+            "evaluated": 116,
+            "wins": 54,
+            "losses": 61,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 46.55,
+            "baseline_last_candle_accuracy_pct": 50.86
+          },
+          "2026-09-22": {
+            "evaluated": 112,
+            "wins": 56,
+            "losses": 55,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 50.0,
+            "baseline_last_candle_accuracy_pct": 42.86
+          },
+          "2026-09-23": {
+            "evaluated": 115,
+            "wins": 61,
+            "losses": 53,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 53.04,
+            "baseline_last_candle_accuracy_pct": 46.09
+          },
+          "2026-09-24": {
+            "evaluated": 123,
+            "wins": 61,
+            "losses": 62,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 49.59,
+            "baseline_last_candle_accuracy_pct": 48.78
+          },
+          "2026-09-25": {
+            "evaluated": 109,
+            "wins": 54,
+            "losses": 50,
+            "ties": 5,
+            "accuracy_pct_ties_as_not_wins": 49.54,
+            "baseline_last_candle_accuracy_pct": 44.95
+          },
+          "2026-09-28": {
+            "evaluated": 114,
+            "wins": 46,
+            "losses": 66,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 40.35,
+            "baseline_last_candle_accuracy_pct": 38.6
+          },
+          "2026-09-29": {
+            "evaluated": 111,
+            "wins": 62,
+            "losses": 49,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 55.86,
+            "baseline_last_candle_accuracy_pct": 56.76
+          },
+          "2026-09-30": {
+            "evaluated": 111,
+            "wins": 58,
+            "losses": 49,
+            "ties": 4,
+            "accuracy_pct_ties_as_not_wins": 52.25,
+            "baseline_last_candle_accuracy_pct": 51.35
+          },
+          "2026-10-01": {
+            "evaluated": 104,
+            "wins": 59,
+            "losses": 44,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 56.73,
+            "baseline_last_candle_accuracy_pct": 55.77
+          },
+          "2026-10-02": {
+            "evaluated": 131,
+            "wins": 53,
+            "losses": 77,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 40.46,
+            "baseline_last_candle_accuracy_pct": 44.27
+          },
+          "2026-10-05": {
+            "evaluated": 126,
+            "wins": 56,
+            "losses": 69,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 44.44,
+            "baseline_last_candle_accuracy_pct": 50.79
+          },
+          "2026-10-06": {
+            "evaluated": 112,
+            "wins": 58,
+            "losses": 52,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 51.79,
+            "baseline_last_candle_accuracy_pct": 49.11
+          },
+          "2026-10-07": {
+            "evaluated": 115,
+            "wins": 61,
+            "losses": 53,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 53.04,
+            "baseline_last_candle_accuracy_pct": 46.96
+          },
+          "2026-10-08": {
+            "evaluated": 109,
+            "wins": 46,
+            "losses": 63,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 42.2,
+            "baseline_last_candle_accuracy_pct": 31.19
+          },
+          "2026-10-09": {
+            "evaluated": 107,
+            "wins": 57,
+            "losses": 49,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 53.27,
+            "baseline_last_candle_accuracy_pct": 47.66
+          },
+          "2026-10-12": {
+            "evaluated": 109,
+            "wins": 43,
+            "losses": 63,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 39.45,
+            "baseline_last_candle_accuracy_pct": 42.2
+          },
+          "2026-10-13": {
+            "evaluated": 115,
+            "wins": 55,
+            "losses": 60,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 47.83,
+            "baseline_last_candle_accuracy_pct": 46.09
+          },
+          "2026-10-14": {
+            "evaluated": 112,
+            "wins": 60,
+            "losses": 49,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 53.57,
+            "baseline_last_candle_accuracy_pct": 50.89
+          },
+          "2026-10-15": {
+            "evaluated": 107,
+            "wins": 49,
+            "losses": 57,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 45.79,
+            "baseline_last_candle_accuracy_pct": 42.06
+          },
+          "2026-10-16": {
+            "evaluated": 102,
+            "wins": 54,
+            "losses": 47,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 52.94,
+            "baseline_last_candle_accuracy_pct": 44.12
+          },
+          "2026-10-19": {
+            "evaluated": 112,
+            "wins": 59,
+            "losses": 53,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 52.68,
+            "baseline_last_candle_accuracy_pct": 45.54
+          },
+          "2026-10-20": {
+            "evaluated": 98,
+            "wins": 55,
+            "losses": 43,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 56.12,
+            "baseline_last_candle_accuracy_pct": 51.02
+          },
+          "2026-10-21": {
+            "evaluated": 110,
+            "wins": 51,
+            "losses": 59,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 46.36,
+            "baseline_last_candle_accuracy_pct": 48.18
+          },
+          "2026-10-22": {
+            "evaluated": 104,
+            "wins": 52,
+            "losses": 50,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 50.0,
+            "baseline_last_candle_accuracy_pct": 44.23
+          },
+          "2026-10-23": {
+            "evaluated": 115,
+            "wins": 56,
+            "losses": 58,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 48.7,
+            "baseline_last_candle_accuracy_pct": 46.96
+          },
+          "2026-10-26": {
+            "evaluated": 127,
+            "wins": 58,
+            "losses": 66,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 45.67,
+            "baseline_last_candle_accuracy_pct": 52.76
+          },
+          "2026-10-27": {
+            "evaluated": 113,
+            "wins": 51,
+            "losses": 60,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 45.13,
+            "baseline_last_candle_accuracy_pct": 46.9
+          },
+          "2026-10-28": {
+            "evaluated": 104,
+            "wins": 51,
+            "losses": 52,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 49.04,
+            "baseline_last_candle_accuracy_pct": 48.08
+          },
+          "2026-10-29": {
+            "evaluated": 112,
+            "wins": 56,
+            "losses": 56,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 50.0,
+            "baseline_last_candle_accuracy_pct": 48.21
+          },
+          "2026-10-30": {
+            "evaluated": 123,
+            "wins": 69,
+            "losses": 52,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 56.1,
+            "baseline_last_candle_accuracy_pct": 43.09
+          },
+          "2026-11-02": {
+            "evaluated": 115,
+            "wins": 51,
+            "losses": 61,
+            "ties": 3,
+            "accuracy_pct_ties_as_not_wins": 44.35,
+            "baseline_last_candle_accuracy_pct": 48.7
+          },
+          "2026-11-03": {
+            "evaluated": 105,
+            "wins": 53,
+            "losses": 52,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 50.48,
+            "baseline_last_candle_accuracy_pct": 45.71
+          },
+          "2026-11-04": {
+            "evaluated": 117,
+            "wins": 71,
+            "losses": 46,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 60.68,
+            "baseline_last_candle_accuracy_pct": 49.57
+          },
+          "2026-11-05": {
+            "evaluated": 123,
+            "wins": 63,
+            "losses": 59,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 51.22,
+            "baseline_last_candle_accuracy_pct": 52.03
+          },
+          "2026-11-06": {
+            "evaluated": 117,
+            "wins": 60,
+            "losses": 56,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 51.28,
+            "baseline_last_candle_accuracy_pct": 52.14
+          },
+          "2026-11-09": {
+            "evaluated": 116,
+            "wins": 62,
+            "losses": 53,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 53.45,
+            "baseline_last_candle_accuracy_pct": 55.17
+          },
+          "2026-11-10": {
+            "evaluated": 112,
+            "wins": 52,
+            "losses": 59,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 46.43,
+            "baseline_last_candle_accuracy_pct": 50.89
+          },
+          "2026-11-11": {
+            "evaluated": 122,
+            "wins": 62,
+            "losses": 58,
+            "ties": 2,
+            "accuracy_pct_ties_as_not_wins": 50.82,
+            "baseline_last_candle_accuracy_pct": 46.72
+          },
+          "2026-11-12": {
+            "evaluated": 110,
+            "wins": 51,
+            "losses": 58,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 46.36,
+            "baseline_last_candle_accuracy_pct": 45.45
+          },
+          "2026-11-13": {
+            "evaluated": 114,
+            "wins": 59,
+            "losses": 54,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 51.75,
+            "baseline_last_candle_accuracy_pct": 47.37
+          },
+          "2026-11-16": {
+            "evaluated": 117,
+            "wins": 52,
+            "losses": 64,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 44.44,
+            "baseline_last_candle_accuracy_pct": 39.32
+          },
+          "2026-11-17": {
+            "evaluated": 110,
+            "wins": 56,
+            "losses": 54,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 50.91,
+            "baseline_last_candle_accuracy_pct": 48.18
+          },
+          "2026-11-18": {
+            "evaluated": 116,
+            "wins": 64,
+            "losses": 51,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 55.17,
+            "baseline_last_candle_accuracy_pct": 47.41
+          }
+        },
+        "last_session_descriptive": {
+          "evaluated": 116,
+          "wins": 64,
+          "losses": 51,
+          "ties": 1,
+          "accuracy_pct_ties_as_not_wins": 55.17,
+          "baseline_last_candle_accuracy_pct": 47.41
+        }
+      }
+    }
+  }
+}

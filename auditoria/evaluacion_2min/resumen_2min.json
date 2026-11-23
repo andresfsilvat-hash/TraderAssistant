@@ -1,0 +1,100 @@
+{
+  "evaluator_version": "offline-2min-1.0",
+  "generated_at_utc": "2026-11-18T21:19:42.444303+00:00",
+  "horizon_nominal_seconds": 120,
+  "signal_source": "Original detect_patterns + detect_indicators + _classify",
+  "real_trade_eligible": false,
+  "payout_scenario": null,
+  "break_even_pct": null,
+  "results": {
+    "NVDA": {
+      "source": {
+        "path": "C:\\Proyectos\\TraderAssistant\\cache\\alpaca_iex_nvda.json",
+        "feed": "IEX",
+        "saved_at": "2026-11-18T21:19:27.251926+00:00"
+      },
+      "validation": {
+        "received": 500,
+        "invalid": 0,
+        "duplicates": 0,
+        "provisional": 0,
+        "unaligned": 0
+      },
+      "counts": {
+        "bars_all": 500,
+        "bars_regular": 443,
+        "analysis_points": 402,
+        "no_signal": 237,
+        "contradictory": 9,
+        "skip_missing_exit": 2,
+        "skip_cross_session": 2,
+        "candidates_with_outcome": 154,
+        "excluded_overlap": 44
+      },
+      "summary": {
+        "sessions": [
+          "2026-11-17",
+          "2026-11-18"
+        ],
+        "session_count": 2,
+        "evidence_level": "INSUFICIENTE",
+        "required_sessions_for_first_review": 5,
+        "note": "No es validación fuera de muestra. No demuestra rentabilidad o capacidad predictiva.",
+        "all_signal_events_including_overlap": 154,
+        "selected_nonoverlap_events": 110,
+        "metrics": {
+          "total": {
+            "evaluated": 110,
+            "wins": 60,
+            "losses": 49,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 54.55,
+            "baseline_last_candle_accuracy_pct": 45.45
+          },
+          "SUBE": {
+            "evaluated": 58,
+            "wins": 31,
+            "losses": 26,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 53.45,
+            "baseline_last_candle_accuracy_pct": 44.83
+          },
+          "BAJA": {
+            "evaluated": 52,
+            "wins": 29,
+            "losses": 23,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 55.77,
+            "baseline_last_candle_accuracy_pct": 46.15
+          }
+        },
+        "by_session": {
+          "2026-11-17": {
+            "evaluated": 30,
+            "wins": 16,
+            "losses": 14,
+            "ties": 0,
+            "accuracy_pct_ties_as_not_wins": 53.33,
+            "baseline_last_candle_accuracy_pct": 40.0
+          },
+          "2026-11-18": {
+            "evaluated": 80,
+            "wins": 44,
+            "losses": 35,
+            "ties": 1,
+            "accuracy_pct_ties_as_not_wins": 55.0,
+            "baseline_last_candle_accuracy_pct": 47.5
+          }
+        },
+        "last_session_descriptive": {
+          "evaluated": 80,
+          "wins": 44,
+          "losses": 35,
+          "ties": 1,
+          "accuracy_pct_ties_as_not_wins": 55.0,
+          "baseline_last_candle_accuracy_pct": 47.5
+        }
+      }
+    }
+  }
+}

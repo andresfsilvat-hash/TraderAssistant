@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TraderAssistant — NVDA · streaming IEX (v3)</title>
+<style>
+:root {color-scheme:dark;--bg:#0e1119;--panel:#181d2a;--panel2:#121622;--edge:#2a3447;--text:#e6edf8;--muted:#92a3bb;--green:#23c483;--red:#f4525a;--blue:#4d91fa}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:'Segoe UI',Arial,sans-serif;color:var(--text);background:var(--bg)}
+a{color:#abc9ff;text-decoration:none}button{background:transparent;border:1px solid var(--edge);color:var(--muted);padding:9px 15px;cursor:pointer;border-radius:6px;font:inherit;font-size:13px}
+button.active{background:#2261b8;color:#fff;border-color:#327feb}
+#price.flash{animation:priceflash .5s ease-out}@keyframes priceflash{from{background:#2d4865}to{background:transparent}}
+.liveFlag{font-size:11px;color:var(--muted);border:1px solid var(--edge);padding:6px 8px;border-radius:5px}button:hover{border-color:#7189ab}
+.top{min-height:56px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 19px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.brand{font-size:17px;font-weight:750;letter-spacing:.2px}.brand small{font-size:12px;font-weight:500;color:var(--muted);margin-left:9px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.back{font-size:12px;border:1px solid var(--edge);padding:9px 12px;border-radius:6px}
+.content{padding:14px 16px}.summary{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.05fr;gap:12px;margin-bottom:12px}
+.stat{border:1px solid var(--edge);background:var(--panel);padding:13px 16px;border-radius:8px;min-height:92px}.stat .k{color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}.stat .v{font-size:26px;font-variant-numeric:tabular-nums;font-weight:700;padding-top:6px}.stat .s{color:var(--muted);font-size:12px;margin-top:4px}
+.stat.small .v{font-size:19px}.up{color:var(--green)}.down{color:var(--red)}.flat{color:var(--muted)}
+.chartPanel{background:var(--panel2);border:1px solid var(--edge);border-radius:9px;overflow:hidden}
+.chartHead{padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.chartHead .name{font-size:14px;font-weight:650}.time{display:flex;gap:6px;align-items:center}
+#chart{height:calc(100vh - 300px);min-height:390px;width:100%;position:relative;background:var(--bg)}
+.empty{position:absolute;inset:20px;display:flex;justify-content:center;align-items:center;text-align:center;color:var(--muted);pointer-events:none;font-size:15px}
+.details{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:11px 15px;background:var(--panel);font-size:12px;color:var(--muted);border-top:1px solid var(--edge)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--edge);border-radius:99px;color:#d5e5fd;font-size:12px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#94a3b8}.dot.good{background:var(--green)}.dot.bad{background:var(--red)}
+.notice{margin:12px 2px;color:var(--muted);font-size:12px;line-height:1.5}.error{color:#fda4af;word-break:break-word}
+.progress{height:3px;background:#293346;overflow:hidden}.progress>div{height:100%;width:0;background:var(--blue);transition:width .7s linear}
+@media(max-width:1100px){.summary{grid-template-columns:1fr 1fr}#chart{height:57vh}}
+@media(max-width:650px){.summary{grid-template-columns:1fr}.stat{min-height:75px}.brand small{display:block;margin:3px 0 0}}
+</style>
+<script src="/vendor/lightweight-charts.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">TRADERASSISTANT <small>NVIDIA (NVDA) · datos Alpaca IEX</small></div>
+  <div class="toolbar"><span class="pill"><span class="dot" id="dot"></span><span id="connection">Conectando…</span></span><span class="liveFlag" id="delivery">Canal: conectando</span><a class="back" href="/">Ir al analizador histórico</a></div>
+</header>
+<main class="content">
+  <section class="summary">
+    <div class="stat"><div class="k">Última operación IEX</div><div class="v" id="price">—</div><div class="s" id="trade-time">Esperando la primera operación</div></div>
+    <div class="stat small"><div class="k">Movimiento de la vela</div><div class="v flat" id="movement">—</div><div class="s" id="movement-detail">Variación observada, no predicción</div></div>
+    <div class="stat small"><div class="k">Último dato recibido</div><div class="v" id="age">—</div><div class="s" id="received-time">Sin operaciones nuevas</div><div class="s" id="lag">Retraso: por medir</div></div>
+    <div class="stat small"><div class="k">Vela mostrada</div><div class="v" id="bar-status">—</div><div class="s" id="bar-start">Sin datos</div></div>
+  </section>
+  <section class="chartPanel">
+    <div class="chartHead">
+      <div class="name">NVDA <span style="font-weight:400;color:var(--muted)">· precio IEX</span></div>
+      <div class="time"><span style="color:var(--muted);font-size:12px;margin-right:4px">Velas</span><button id="tf5s" type="button">5 segundos</button><button id="tf1m" type="button" class="active">1 minuto</button><button id="tf5m" type="button">5 minutos</button><button id="follow" type="button" class="active" title="Regresar a las últimas velas">Seguir precio</button></div>
+    </div>
+    <div id="chart"><div id="empty" class="empty">Conectando con Alpaca y cargando velas…</div></div>
+    <div class="progress"><div id="progress"></div></div>
+    <div class="details">
+      <span id="count">0 velas</span><span id="trade-state">Esperando cotizaciones…</span><span id="trade-count">Operaciones recibidas: 0</span><span>Hora: Ecuador (UTC−5)</span><span>Fuente: IEX, una sola bolsa</span><span id="error" class="error"></span>
+    </div>
+  </section>
+  <p class="notice">v3: el servidor recibe operaciones desde Alpaca por WebSocket y avisa inmediatamente a esta pantalla (SSE, con respaldo por consulta periódica). Si no hay operaciones IEX nuevas, el precio NO debe moverse: eso no es una congelación de la interfaz. La demora estimada compara relojes y no mide la latencia de toda la bolsa. Velas de 5 segundos construidas solo con trades efectivamente recibidos. Sin órdenes ni predicciones.</p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const TIMEZONE='America/Guayaquil';
+const fmtDate=new Intl.DateTimeFormat('es-EC',{timeZone:TIMEZONE,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const fmtHour=new Intl.DateTimeFormat('es-EC',{timeZone:TIMEZONE,hour:'2-digit',minute:'2-digit',hour12:false});
+const fmtDay=new Intl.DateTimeFormat('es-EC',{timeZone:TIMEZONE,day:'2-digit',month:'short'});
+function formatTime(ts){if(!ts)return '—';const d=new Date(ts);return Number.isFinite(d.getTime())?fmtDate.format(d)+' (EC)':'—';}
+const toJsDate=t=>new Date(Number(t)*1000);
+const chartEl=$('chart');
+const chart=LightweightCharts.createChart(chartEl,{width:chartEl.clientWidth,height:chartEl.clientHeight-1,
+ layout:{background:{color:'#0e1119'},textColor:'#92a3bb'},
+ grid:{vertLines:{color:'#21283a'},horzLines:{color:'#21283a'}},
+ crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+ rightPriceScale:{borderColor:'#34435c'},
+ localization:{locale:'es-EC',timeFormatter:t=>fmtDate.format(toJsDate(t))+' EC'},
+ timeScale:{borderColor:'#34435c',timeVisible:true,secondsVisible:false,rightOffset:8,
+    tickMarkFormatter:(t,kind)=>kind<=2?fmtDay.format(toJsDate(t)):fmtHour.format(toJsDate(t))}});
+const candle=chart.addCandlestickSeries({upColor:'#23c483',downColor:'#f4525a',borderUpColor:'#23c483',borderDownColor:'#f4525a',wickUpColor:'#23c483',wickDownColor:'#f4525a'});
+const volume=chart.addHistogramSeries({color:'#5475ae66',priceFormat:{type:'volume'},priceScaleId:'volume'});
+chart.priceScale('volume').applyOptions({scaleMargins:{top:.82,bottom:0}});
+let tf='1m',lastTime=null,lastSignature='',count=0,working=false,follow=true,everLoaded=false,lastData=null,lastTradeTimestamp=null;
+let requestTimer=null,requestAgain=false,refreshWhen=0;
+function updateButtons(){for(const x of ['5s','1m','5m']) $('tf'+x).classList.toggle('active',tf===x);chart.applyOptions({timeScale:{secondsVisible:tf==='5s',timeVisible:true}});}
+function focusLatest(n){if(!n)return;const visible=tf==='5s'?75:65;chart.timeScale().setVisibleLogicalRange({from:Math.max(-.5,n-visible),to:n+5});}
+function switchTf(value){if(tf===value)return;tf=value;lastTime=null;lastSignature='';count=0;everLoaded=false;follow=true;candle.setData([]);volume.setData([]);updateButtons();if(lastData)paint(lastData);}
+$('tf5s').addEventListener('click',()=>switchTf('5s'));
+$('tf1m').addEventListener('click',()=>switchTf('1m'));
+$('tf5m').addEventListener('click',()=>switchTf('5m'));
+$('follow').addEventListener('click',()=>{follow=true;$('follow').classList.add('active');focusLatest(count);});
+function aggregate5m(bars){const out=[];for(const b of bars){const t=Math.floor(b.time/300)*300;const tail=out[out.length-1];if(tail&&tail.time===t){tail.high=Math.max(tail.high,b.high);tail.low=Math.min(tail.low,b.low);tail.close=b.close;tail.volume+=b.volume;}else out.push({time:t,open:b.open,high:b.high,low:b.low,close:b.close,volume:b.volume});}return out;}
+function viewBars(d){return tf==='5s'?(d.short_candles||[]):tf==='5m'?aggregate5m(d.candles||[]):(d.candles||[]);}
+function secondsOfTf(){return tf==='5s'?5:tf==='5m'?300:60;}
+function colors(b){return {time:b.time,value:b.volume,color:b.close>=b.open?'#23c48344':'#f4525a44'};}
+function paint(d){
+ lastData=d;const bars=viewBars(d);const last=bars[bars.length-1];const sig=last?`${bars.length}:${last.time}:${last.open}:${last.high}:${last.low}:${last.close}:${last.volume}`:'0';
+ if(sig!==lastSignature){lastSignature=sig;
+   if(!everLoaded||lastTime===null||bars.length<count||last.time<lastTime||bars.length>count+1){
+     candle.setData(bars);volume.setData(bars.map(colors));
+     if(bars.length&&!everLoaded){focusLatest(bars.length);everLoaded=true;}
+   }else if(last){candle.update(last);volume.update(colors(last));if(follow&&last.time>lastTime)chart.timeScale().scrollToRealTime();}
+   lastTime=last?last.time:null;count=bars.length;
+ }
+ $('count').textContent=bars.length+' velas · '+tf;
+ $('empty').style.display=bars.length?'none':'flex';
+ $('empty').textContent=d.status==='error'?'No se pudo iniciar el flujo IEX':(tf==='5s'?'Esperando operaciones para crear velas de 5 segundos…':'Esperando historial y cotizaciones IEX…');
+ const trade=d.last_trade,tradeAt=trade?Date.parse(trade.timestamp):NaN,receivedAt=d.last_received_at?Date.parse(d.last_received_at):NaN;
+ const ageTrade=Number.isFinite(tradeAt)?Math.max(0,Math.floor((Date.now()-tradeAt)/1000)):null;
+ const ageRecv=Number.isFinite(receivedAt)?Math.max(0,Math.floor((Date.now()-receivedAt)/1000)):null;
+ $('price').textContent=trade?'$'+Number(trade.price).toFixed(3):last?'$'+Number(last.close).toFixed(3):'—';
+ if(trade&&trade.timestamp!==lastTradeTimestamp){if(lastTradeTimestamp!==null){const el=$('price');el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');}lastTradeTimestamp=trade.timestamp;}
+ $('trade-time').textContent=trade?'Operación: '+formatTime(trade.timestamp):'Esperando operaciones en streaming';
+ $('age').textContent=ageRecv===null?'—':ageRecv+' s';
+ $('received-time').textContent=d.last_received_at?'Recibido: '+formatTime(d.last_received_at):'Todavía no se han recibido operaciones';
+ if(Number.isFinite(tradeAt)&&Number.isFinite(receivedAt)){
+   const lag=(receivedAt-tradeAt)/1000;
+   $('lag').textContent='Desfase observado: '+(lag>=0?lag.toFixed(2)+' s':'revisar reloj del PC');
+ }else $('lag').textContent='Desfase observado: sin datos';
+ const recent=d.status==='conectado'&&trade&&ageRecv!==null&&ageRecv<10&&ageTrade!==null&&ageTrade<30;
+ $('dot').className='dot '+(recent?'good':d.status==='error'?'bad':'');
+ $('connection').textContent=d.status==='error'?'Error del flujo':d.status==='conectado'?(recent?'IEX · nueva operación':'IEX · conectado, sin trades recientes'):d.status==='conectando'?'Conectando a IEX…':d.status==='reconectando'?'Reconectando…':d.status;
+ $('trade-state').textContent=recent?'Cotización recibida recientemente':d.status==='conectado'?'Conectado, esperando nueva operación':(d.status||'Sin conexión');
+ $('trade-count').textContent='Operaciones recibidas: '+(d.trade_count||0);
+ $('error').textContent=d.error||d.history_error||'';
+ const tfseconds=secondsOfTf(),now=Math.floor(Date.now()/1000),remaining=last?Math.max(0,tfseconds-(now-last.time)):0;
+ $('progress').style.width=last&&remaining?Math.max(0,Math.min(100,((tfseconds-remaining)/tfseconds)*100))+'%':'0%';
+ $('bar-status').textContent=!last?'—':remaining>0?'FORMÁNDOSE':'ÚLTIMA CERRADA';
+ $('bar-start').textContent=last?'Inicio: '+formatTime(new Date(last.time*1000).toISOString()):'Sin velas';
+ const move=$('movement');move.className='v flat';
+ if(last&&last.open>0){const pct=(last.close-last.open)/last.open*100;move.textContent=(pct>0?'▲ ':pct<0?'▼ ':'= ')+Math.abs(pct).toFixed(3)+'%';move.className='v '+(pct>0?'up':pct<0?'down':'flat');$('movement-detail').textContent=(pct>0?'Subiendo':pct<0?'Bajando':'Sin cambio')+' respecto a la apertura de la vela';}
+ else{move.textContent='—';$('movement-detail').textContent='Sin vela para medir variación';}
+}
+async function refresh(){
+ if(working){requestAgain=true;return;}
+ working=true;
+ try{const res=await fetch('/api/alpaca/live',{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const d=await res.json();paint(d);refreshWhen=Date.now();}
+ catch(e){$('connection').textContent='Error de conexión local';$('dot').className='dot bad';$('error').textContent=e.message;}
+ finally{working=false;if(requestAgain){requestAgain=false;scheduleRefresh();}}
+}
+function scheduleRefresh(){if(requestTimer)return;requestTimer=setTimeout(()=>{requestTimer=null;refresh();},200);}
+// Market data first enters the Python server through Alpaca's streaming WebSocket.
+// This SSE connection immediately notifies the GUI; Python only returns market data,
+// never API keys. A periodic fetch is retained as a fallback if SSE is unsupported.
+if(typeof EventSource!=='undefined'){
+ const events=new EventSource('/api/alpaca/events');
+ events.addEventListener('update',()=>{ $('delivery').textContent='Canal: streaming';scheduleRefresh();});
+ events.onopen=()=>{$('delivery').textContent='Canal: streaming conectado';};
+ events.onerror=()=>{$('delivery').textContent='Canal: reconectando (respaldo activo)';};
+}else $('delivery').textContent='Canal: respaldo periódico';
+refresh();
+setInterval(()=>{if(lastData)paint(lastData);if(Date.now()-refreshWhen>4500)scheduleRefresh();},1000);
+new ResizeObserver(()=>chart.resize(chartEl.clientWidth,Math.max(390,chartEl.clientHeight-1))).observe(chartEl);
+</script>
+</body>
+</html>

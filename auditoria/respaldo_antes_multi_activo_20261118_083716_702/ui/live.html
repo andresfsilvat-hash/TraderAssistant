@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TraderAssistant — NVDA · streaming IEX (v4)</title>
+<style>
+:root {color-scheme:dark;--bg:#0e1119;--panel:#181d2a;--panel2:#121622;--edge:#2a3447;--text:#e6edf8;--muted:#92a3bb;--green:#23c483;--red:#f4525a;--blue:#4d91fa}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:'Segoe UI',Arial,sans-serif;color:var(--text);background:var(--bg)}
+a{color:#abc9ff;text-decoration:none}button{background:transparent;border:1px solid var(--edge);color:var(--muted);padding:9px 15px;cursor:pointer;border-radius:6px;font:inherit;font-size:13px}
+button.active{background:#2261b8;color:#fff;border-color:#327feb}
+#price.flash{animation:priceflash .5s ease-out}@keyframes priceflash{from{background:#2d4865}to{background:transparent}}
+.liveFlag{font-size:11px;color:var(--muted);border:1px solid var(--edge);padding:6px 8px;border-radius:5px}button:hover{border-color:#7189ab}
+.top{min-height:56px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 19px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.brand{font-size:17px;font-weight:750;letter-spacing:.2px}.brand small{font-size:12px;font-weight:500;color:var(--muted);margin-left:9px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.back{font-size:12px;border:1px solid var(--edge);padding:9px 12px;border-radius:6px}
+.content{padding:14px 16px}.summary{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.05fr;gap:12px;margin-bottom:12px}
+.stat{border:1px solid var(--edge);background:var(--panel);padding:13px 16px;border-radius:8px;min-height:92px}.stat .k{color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}.stat .v{font-size:26px;font-variant-numeric:tabular-nums;font-weight:700;padding-top:6px}.stat .s{color:var(--muted);font-size:12px;margin-top:4px}
+.stat.small .v{font-size:19px}.up{color:var(--green)}.down{color:var(--red)}.flat{color:var(--muted)}
+.chartPanel{background:var(--panel2);border:1px solid var(--edge);border-radius:9px;overflow:hidden}
+.chartHead{padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.chartHead .name{font-size:14px;font-weight:650}.time{display:flex;gap:6px;align-items:center}
+#chart{height:calc(100vh - 300px);min-height:390px;width:100%;position:relative;background:var(--bg)}
+.empty{position:absolute;inset:20px;display:flex;justify-content:center;align-items:center;text-align:center;color:var(--muted);pointer-events:none;font-size:15px}
+.details{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:11px 15px;background:var(--panel);font-size:12px;color:var(--muted);border-top:1px solid var(--edge)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--edge);border-radius:99px;color:#d5e5fd;font-size:12px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#94a3b8}.dot.good{background:var(--green)}.dot.bad{background:var(--red)}
+.notice{margin:12px 2px;color:var(--muted);font-size:12px;line-height:1.5}.error{color:#fda4af;word-break:break-word}
+.progress{height:3px;background:#293346;overflow:hidden}.progress>div{height:100%;width:0;background:var(--blue);transition:width .7s linear}
+@media(max-width:1100px){.summary{grid-template-columns:1fr 1fr}#chart{height:57vh}}
+@media(max-width:650px){.summary{grid-template-columns:1fr}.stat{min-height:75px}.brand small{display:block;margin:3px 0 0}}
+</style>
+<script src="/vendor/lightweight-charts.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">TRADERASSISTANT <small>NVIDIA (NVDA) · datos Alpaca IEX</small></div>
+  <div class="toolbar"><span class="pill"><span class="dot" id="dot"></span><span id="connection">Conectando…</span></span><span class="liveFlag" id="delivery">Canal: conectando</span><span class="liveFlag" id="version">v4.0.0</span><a class="back" href="/">Ir al analizador histórico</a></div>
+</header>
+<main class="content">
+  <section class="summary">
+    <div class="stat"><div class="k">Última operación IEX</div><div class="v" id="price">—</div><div class="s" id="trade-time">Esperando la primera operación</div></div>
+    <div class="stat small"><div class="k">Movimiento de la vela</div><div class="v flat" id="movement">—</div><div class="s" id="movement-detail">Variación observada, no predicción</div></div>
+    <div class="stat small"><div class="k">Último dato recibido</div><div class="v" id="age">—</div><div class="s" id="received-time">Sin operaciones nuevas</div><div class="s" id="lag">Retraso: por medir</div><div class="s" id="paint-delay">Pantalla: por medir</div></div>
+    <div class="stat small"><div class="k">Vela mostrada</div><div class="v" id="bar-status">—</div><div class="s" id="bar-start">Sin datos</div></div>
+  </section>
+  <section class="chartPanel">
+    <div class="chartHead">
+      <div class="name">NVDA <span style="font-weight:400;color:var(--muted)">· precio IEX</span></div>
+      <div class="time"><span style="color:var(--muted);font-size:12px;margin-right:4px">Velas</span><button id="tf5s" type="button">5 segundos</button><button id="tf1m" type="button" class="active">1 minuto</button><button id="tf5m" type="button">5 minutos</button><button id="follow" type="button" class="active" title="Regresar a las últimas velas">Seguir precio</button></div>
+    </div>
+    <div id="chart"><div id="empty" class="empty">Conectando con Alpaca y cargando velas…</div></div>
+    <div class="progress"><div id="progress"></div></div>
+    <div class="details">
+      <span id="count">0 velas</span><span id="trade-state">Esperando cotizaciones…</span><span id="visual-age">Pantalla: esperando datos</span><span id="trade-count">Operaciones recibidas: 0</span><span id="bar-quality">Velas: esperando</span><span>Hora: Ecuador (UTC−5)</span><span>Fuente: IEX, una sola bolsa</span><span id="error" class="error"></span>
+    </div>
+  </section>
+  <p class="notice">v4: datos IEX por WebSocket. Las velas de 1 minuto cerradas provienen de Alpaca; la vela en formación y las de 5 segundos son indicativas, construidas con operaciones elegibles observadas por el programa; pueden recuperarse desde la caché local tras reiniciar. Sin operaciones nuevas, el precio no se mueve; el reloj y la conexión sí. No representa todas las bolsas ni predice precios. Solo lectura: ninguna orden bursátil.</p>
+</main>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const TZ = 'America/Guayaquil';
+const fullTime = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const hours = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,hour:'2-digit',minute:'2-digit',hour12:false});
+const hoursSeconds = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const days = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,day:'2-digit',month:'short'});
+const fromUnix = (ts) => new Date(Number(ts)*1000);
+function timeLabel(iso) {if(!iso)return '—';const date=new Date(iso);return Number.isFinite(date.getTime())?fullTime.format(date)+' EC':'—';}
+function timeAge(iso) {const n=Date.parse(iso||'');return Number.isFinite(n)?Math.max(0,Math.floor((Date.now()-n)/1000)):null;}
+function textAge(s) {return s===null?'—':s+' s';}
+function volumePoint(b) {return {time:b.time,value:b.volume,color:b.close>=b.open?'#23c48344':'#f4525a44'};}
+
+const chartEl = $('chart');
+if(typeof LightweightCharts==='undefined') {
+  $('empty').textContent='Error: no se pudo cargar lightweight-charts.js';
+  throw new Error('No se cargo la libreria local de graficos');
+}
+const chart = LightweightCharts.createChart(chartEl, {
+  width:chartEl.clientWidth,height:Math.max(390,chartEl.clientHeight-1),
+  layout:{background:{color:'#0e1119'},textColor:'#92a3bb'},
+  grid:{vertLines:{color:'#21283a'},horzLines:{color:'#21283a'}},
+  crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+  rightPriceScale:{borderColor:'#34435c'},
+  localization:{locale:'es-EC',timeFormatter:(t)=>fullTime.format(fromUnix(t))+' EC'},
+  timeScale:{borderColor:'#34435c',timeVisible:true,secondsVisible:false,rightOffset:7,
+    tickMarkFormatter:(t,k)=>k<=2?days.format(fromUnix(t)):hours.format(fromUnix(t))}
+});
+const candle = chart.addCandlestickSeries({upColor:'#23c483',downColor:'#f4525a',borderUpColor:'#23c483',borderDownColor:'#f4525a',wickUpColor:'#23c483',wickDownColor:'#f4525a'});
+const volume = chart.addHistogramSeries({color:'#5475ae66',priceFormat:{type:'volume'},priceScaleId:'volume'});
+chart.priceScale('volume').applyOptions({scaleMargins:{top:.82,bottom:0}});
+
+let tf='1m';
+let lastPayload=null;
+let lastSignature='';
+let lastTime=null;
+let count=0;
+let revision=null;
+let firstDraw=true;
+let following=true;
+let lastTradeStamp=null;
+let lastRenderedTradeStamp=null;
+let lastFetchedAt=0;
+let fetchBusy=false;
+let fetchQueued=false;
+let fetchTimer=null;
+let sseOk=false;
+
+function seriesFor(data) {
+  if(tf==='5s')return data.short_candles||[];
+  if(tf==='1m')return data.candles||[];
+  const combined=[];
+  for(const b of data.candles||[]) {
+    const bucket=Math.floor(b.time/300)*300;
+    const tail=combined[combined.length-1];
+    if(tail&&tail.time===bucket) {
+      tail.high=Math.max(tail.high,b.high);
+      tail.low=Math.min(tail.low,b.low);
+      tail.close=b.close;
+      tail.volume+=b.volume;
+      tail.provisional=tail.provisional||b.provisional;
+    }else combined.push({...b,time:bucket});
+  }
+  return combined;
+}
+function tfSeconds() {return tf==='5s'?5:tf==='5m'?300:60;}
+function focusLatest(n=count) {
+  if(!n)return;
+  const shown=tf==='5s'?75:65;
+  chart.timeScale().setVisibleLogicalRange({from:n-shown,to:n+5});
+}
+function updateTfButtons() {
+  for(const t of ['5s','1m','5m'])$('tf'+t).classList.toggle('active',tf===t);
+  chart.applyOptions({timeScale:{secondsVisible:tf==='5s',timeVisible:true,
+    tickMarkFormatter:(t,k)=>k<=2?days.format(fromUnix(t)):(tf==='5s'?hoursSeconds:hours).format(fromUnix(t))}});
+}
+function changeTf(value) {
+  if(tf===value)return;
+  tf=value;lastSignature='';lastTime=null;count=0;revision=null;firstDraw=true;
+  candle.setData([]);volume.setData([]);
+  updateTfButtons();if(lastPayload)drawData(lastPayload);
+}
+$('tf5s').addEventListener('click',()=>changeTf('5s'));
+$('tf1m').addEventListener('click',()=>changeTf('1m'));
+$('tf5m').addEventListener('click',()=>changeTf('5m'));
+$('follow').addEventListener('click',()=>{
+  following=!following;$('follow').classList.toggle('active',following);
+  if(following)focusLatest();
+});
+
+function drawData(data) {
+  const bars=seriesFor(data), last=bars[bars.length-1];
+  const sig=last?[bars.length,last.time,last.open,last.high,last.low,last.close,last.volume,Number(!!last.provisional)].join(':'):'empty';
+  const changedRev=revision!==null&&revision!==data.series_revision;
+  const hadData=count>0;
+  if(sig!==lastSignature||changedRev) {
+    const needsReset=firstDraw||changedRev||!last||lastTime===null||bars.length<count||bars.length>count+1||last.time<lastTime;
+    if(needsReset) {
+      candle.setData(bars.map(b=>({time:b.time,open:b.open,high:b.high,low:b.low,close:b.close})));
+      volume.setData(bars.map(volumePoint));
+      if(following&&bars.length&&(firstDraw||!hadData||changedRev))focusLatest(bars.length);
+    }else if(last) {
+      candle.update({time:last.time,open:last.open,high:last.high,low:last.low,close:last.close});
+      volume.update(volumePoint(last));
+      if(following&&last.time>lastTime)chart.timeScale().scrollToRealTime();
+    }
+    firstDraw=false;
+    lastSignature=sig;
+    lastTime=last?last.time:null;
+    count=bars.length;
+  }
+  revision=data.series_revision;
+  $('count').textContent=bars.length+' velas · '+tf;
+  $('empty').style.display=bars.length?'none':'flex';
+  $('empty').textContent=data.status==='error'?'Alpaca: error de conexion':tf==='5s'?'Esperando operaciones elegibles en vivo…':'Esperando historial o nueva vela IEX…';
+  const source = tf==='5s' ? (last?.origin==='cache'?'caché':last?.origin==='mixed'?'mixta':'en vivo')
+    : (data.history_source==='cache'?'caché':'Alpaca');
+  $('bar-quality').textContent=tf==='5s'?'Velas 5 s indicativas · '+source:
+    last?.provisional?'Última vela: provisional':'Velas 1m · '+source;
+  drawClock(data);
+}
+
+function drawClock(data) {
+  if(!data)return;
+  const now=Date.now();
+  const recentTrade=data.last_trade;
+  const last=data.last_trade||null;
+  const lastAt=last?Date.parse(last.timestamp):NaN;
+  const arrivedAt=data.last_received_at?Date.parse(data.last_received_at):NaN;
+  const arrivedAge=timeAge(data.last_received_at);
+  const tradeAge=Number.isFinite(lastAt)?Math.max(0,Math.floor((now-lastAt)/1000)):null;
+  const packetAge=timeAge(data.last_feed_message_at);
+  $('version').textContent='v'+(data.version_info||'4')+(data.build?' · '+data.build:'');
+  $('price').textContent=last?'$'+Number(last.price).toFixed(3):'—';
+  if(last&&last.timestamp!==lastTradeStamp) {
+    if(lastTradeStamp!==null) {
+      $('price').classList.remove('flash');void $('price').offsetWidth;$('price').classList.add('flash');
+    }
+    lastTradeStamp=last.timestamp;
+  }
+  $('trade-time').textContent=last?'Operación: '+timeLabel(last.timestamp):'Esperando la primera operación IEX';
+  $('age').textContent=textAge(arrivedAge);
+  $('received-time').textContent=data.last_received_at?'Recibido: '+timeLabel(data.last_received_at):'Sin operaciones recibidas';
+  $('lag').textContent=Number.isFinite(data.last_lag_ms)&&data.last_lag_ms>=0?
+    'Bolsa → servidor: '+(data.last_lag_ms/1000).toFixed(2)+' s (aprox.)':
+    'Bolsa → servidor: sin medición fiable';
+  const next=data.candles&&data.candles.length?data.candles[data.candles.length-1]:null;
+  const bars=seriesFor(data),bar=bars[bars.length-1];
+  const ageMs=Date.now()-lastFetchedAt;
+  $('visual-age').textContent='Pantalla: '+(lastFetchedAt?Math.round(ageMs/1000)+' s desde sincronización':'esperando primera sincronización');
+  const channelState=data.status==='conectado';
+  const healthy=channelState&&packetAge!==null&&packetAge<20;
+  $('dot').className='dot '+(channelState?'good':data.status==='error'?'bad':'');
+  $('connection').textContent=data.status==='error'?'IEX: error':data.status==='reconectando'?'IEX: reconectando…':
+    channelState?(healthy?'IEX: conectado':'IEX: conectado, sin mensajes recientes'):
+    data.status==='conectando'?'IEX: conectando…':(data.status||'Esperando IEX');
+  $('trade-state').textContent=channelState?(arrivedAge!==null&&arrivedAge<10?'Recibiendo operaciones':'Sin operaciones IEX recientes (no es un bloqueo)'):
+    (data.status||'Esperando conexion');
+  $('trade-count').textContent='Trades: '+(data.trade_count||0)+' · elegibles: '+(data.eligible_count||0)+' · excluidos: '+(data.excluded_count||0);
+  $('error').textContent=data.error||data.history_error||'';
+  if(bar) {
+    const duration=tfSeconds();
+    const stillForming=bar.provisional && now/1000 < bar.time+duration && now/1000 >= bar.time;
+    const remainder=stillForming?Math.max(0,duration-(Math.floor(now/1000)-bar.time)):0;
+    $('progress').style.width=stillForming?Math.max(0,Math.min(100,(duration-remainder)/duration*100))+'%':'0%';
+    $('bar-status').textContent=bar.provisional?(stillForming?'EN FORMACIÓN':'ÚLTIMA VELA INDICATIVA'):'OFICIAL';
+    $('bar-start').textContent='Inicio: '+timeLabel(new Date(bar.time*1000).toISOString());
+    const variation=bar.open?100*(bar.close-bar.open)/bar.open:0;
+    const move=$('movement');move.className='v '+(variation>0?'up':variation<0?'down':'flat');
+    move.textContent=(variation>0?'▲ ':variation<0?'▼ ':'= ')+Math.abs(variation).toFixed(3)+'%';
+    $('movement-detail').textContent=(bar.provisional?'Estimación provisional':'Vela oficial')+' · no es predicción';
+  }else {
+    $('bar-status').textContent='—';$('bar-start').textContent='Sin velas';
+    $('movement').textContent='—';$('movement').className='v flat';
+    $('movement-detail').textContent='Sin vela para medir variación';
+    $('progress').style.width='0%';
+  }
+}
+
+async function fetchSnapshot() {
+  if(fetchBusy){fetchQueued=true;return;}
+  fetchBusy=true;
+  try {
+    const response=await fetch('/api/alpaca/live',{cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const data=await response.json();
+    lastFetchedAt=Date.now();
+    if(data.last_received_at&&data.last_received_at!==lastRenderedTradeStamp) {
+      lastRenderedTradeStamp=data.last_received_at;
+      const ms=Date.now()-Date.parse(data.last_received_at);
+      $('paint-delay').textContent=ms>=0?'Servidor → pantalla: '+ms+' ms (aprox.)':'Reloj del PC no sincronizado';
+    }
+    lastPayload=data;
+    drawData(data);
+  }catch(e) {
+    $('delivery').textContent='Canal local: reintentando';
+    $('error').textContent='No se pudo leer la API local ('+String(e.message||'Error')+').';
+  }finally{
+    fetchBusy=false;
+    if(fetchQueued){fetchQueued=false;scheduleFetch();}
+  }
+}
+function scheduleFetch(){
+  if(fetchTimer!==null)return;
+  fetchTimer=setTimeout(()=>{fetchTimer=null;fetchSnapshot();},100);
+}
+// SSE notifica cambios; petición local corta para consultar el estado.
+// Si falla SSE, la UI utiliza una comprobación de respaldo cada 3 segundos.
+if(typeof EventSource!=='undefined') {
+  const source=new EventSource('/api/alpaca/events');
+  source.addEventListener('update',()=>{sseOk=true;$('delivery').textContent='Canal: streaming';scheduleFetch();});
+  source.onopen=()=>{sseOk=true;$('delivery').textContent='Canal: SSE conectado';};
+  source.onerror=()=>{sseOk=false;$('delivery').textContent='Canal: SSE reconectando; respaldo activo';};
+}else $('delivery').textContent='Canal: respaldo periódico';
+fetchSnapshot();
+setInterval(()=>{
+  if(lastPayload)drawClock(lastPayload); // reloj activo aun sin trades, no inventar OHLC
+  if(Date.now()-lastFetchedAt>3000||!sseOk)scheduleFetch();
+},1000);
+function resizeChart(){chart.resize(chartEl.clientWidth,Math.max(390,chartEl.clientHeight-1));}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeChart).observe(chartEl);
+else window.addEventListener('resize',resizeChart);
+</script>
+</body>
+</html>

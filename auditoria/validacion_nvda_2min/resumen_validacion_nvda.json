@@ -1,0 +1,280 @@
+{
+  "version": "offline-robust-2min-1.0",
+  "source_file": "nvda_iex_1min_20261118_213505_280555.csv",
+  "source_sha256": "d2e79dae5d3d77543725c12fe8b14631369dc7345637f4308bf8e726a35d82bb",
+  "data_quality": {
+    "velas_recibidas": 25221,
+    "velas_regular": 24566,
+    "velas_fuera_sesion": 655,
+    "velas_duplicadas": 0,
+    "dias": 63,
+    "dias_faltantes_parciales": 4,
+    "minutos_faltantes_regular": 4
+  },
+  "contract": {
+    "feed": "Alpaca IEX, no IQ Option",
+    "horizon_nominal_s": 120,
+    "signal": "last complete one-minute candle, 60 candle intraday warmup",
+    "entry_proxy": "first IEX trade price in next minute bucket",
+    "exit_proxy": "first IEX trade price in minute bucket 120s after entry",
+    "closed_1min_delay_unmeasured": true,
+    "nonoverlap": "120s strategy-specific",
+    "tie_as_failure": true,
+    "pattern_source": "screener.pattern_detector.detect_patterns",
+    "indicator_parameters": "screener.indicator_detector",
+    "train_days": 40,
+    "selection_min_train_events": 80
+  },
+  "split": {
+    "train_first": "2026-08-21",
+    "train_last": "2026-10-16",
+    "test_first": "2026-10-19",
+    "test_last": "2026-11-18",
+    "train_sessions": 40,
+    "test_sessions": 23,
+    "training_eligible_minutes": 12994,
+    "test_eligible_minutes": 7418
+  },
+  "training": {
+    "original_consensus": {
+      "n": 3834,
+      "wins": 1855,
+      "losses": 1921,
+      "ties": 58,
+      "accuracy": 48.382889932185705,
+      "always_up_accuracy_same_events": 49.60876369327074,
+      "compared_last_candle_n": 3626,
+      "accuracy_matched_last_candle": 48.20739106453392,
+      "last_candle_accuracy_matched": 48.455598455598455,
+      "coverage_pct": 29.50592581191319
+    },
+    "rsi_extreme": {
+      "n": 639,
+      "wins": 321,
+      "losses": 308,
+      "ties": 10,
+      "accuracy": 50.23474178403756,
+      "always_up_accuracy_same_events": 51.64319248826291,
+      "compared_last_candle_n": 627,
+      "accuracy_matched_last_candle": 50.398724082934606,
+      "last_candle_accuracy_matched": 48.803827751196174,
+      "coverage_pct": 4.917654301985531
+    },
+    "bb_reversion": {
+      "n": 807,
+      "wins": 379,
+      "losses": 419,
+      "ties": 9,
+      "accuracy": 46.96406443618339,
+      "always_up_accuracy_same_events": 49.938042131350684,
+      "compared_last_candle_n": 787,
+      "accuracy_matched_last_candle": 46.75984752223634,
+      "last_candle_accuracy_matched": 46.75984752223634,
+      "coverage_pct": 6.210558719408958
+    },
+    "macd_cross": {
+      "n": 957,
+      "wins": 457,
+      "losses": 479,
+      "ties": 21,
+      "accuracy": 47.7533960292581,
+      "always_up_accuracy_same_events": 47.64890282131662,
+      "compared_last_candle_n": 933,
+      "accuracy_matched_last_candle": 47.58842443729903,
+      "last_candle_accuracy_matched": 47.90996784565916,
+      "coverage_pct": 7.364937663537017
+    },
+    "candlestick_patterns": {
+      "n": 2707,
+      "wins": 1314,
+      "losses": 1350,
+      "ties": 43,
+      "accuracy": 48.540820096047284,
+      "always_up_accuracy_same_events": 48.17140746213521,
+      "compared_last_candle_n": 2459,
+      "accuracy_matched_last_candle": 48.19032126880846,
+      "last_candle_accuracy_matched": 47.702318015453436,
+      "coverage_pct": 20.832692011697706
+    },
+    "rsi_macd_turn": {
+      "n": 260,
+      "wins": 135,
+      "losses": 122,
+      "ties": 3,
+      "accuracy": 51.92307692307692,
+      "always_up_accuracy_same_events": 48.07692307692308,
+      "compared_last_candle_n": 253,
+      "accuracy_matched_last_candle": 50.98814229249012,
+      "last_candle_accuracy_matched": 52.96442687747036,
+      "coverage_pct": 2.0009235031553025
+    }
+  },
+  "selected_only_from_training": "rsi_macd_turn",
+  "test": {
+    "original_consensus": {
+      "n": 2165,
+      "wins": 1092,
+      "losses": 1050,
+      "ties": 23,
+      "accuracy": 50.43879907621247,
+      "always_up_accuracy_same_events": 48.775981524249424,
+      "compared_last_candle_n": 2094,
+      "accuracy_matched_last_candle": 50.620821394460364,
+      "last_candle_accuracy_matched": 49.09264565425024,
+      "coverage_pct": 29.185764356969532
+    },
+    "rsi_extreme": {
+      "n": 332,
+      "wins": 184,
+      "losses": 147,
+      "ties": 1,
+      "accuracy": 55.42168674698795,
+      "always_up_accuracy_same_events": 49.397590361445786,
+      "compared_last_candle_n": 331,
+      "accuracy_matched_last_candle": 55.28700906344411,
+      "last_candle_accuracy_matched": 43.80664652567976,
+      "coverage_pct": 4.47559989215422
+    },
+    "bb_reversion": {
+      "n": 425,
+      "wins": 209,
+      "losses": 205,
+      "ties": 11,
+      "accuracy": 49.1764705882353,
+      "always_up_accuracy_same_events": 49.1764705882353,
+      "compared_last_candle_n": 418,
+      "accuracy_matched_last_candle": 49.04306220095694,
+      "last_candle_accuracy_matched": 48.08612440191388,
+      "coverage_pct": 5.72930709086007
+    },
+    "macd_cross": {
+      "n": 548,
+      "wins": 278,
+      "losses": 265,
+      "ties": 5,
+      "accuracy": 50.72992700729927,
+      "always_up_accuracy_same_events": 46.53284671532847,
+      "compared_last_candle_n": 544,
+      "accuracy_matched_last_candle": 50.919117647058826,
+      "last_candle_accuracy_matched": 48.161764705882355,
+      "coverage_pct": 7.387435966567808
+    },
+    "candlestick_patterns": {
+      "n": 1497,
+      "wins": 741,
+      "losses": 744,
+      "ties": 12,
+      "accuracy": 49.498997995991985,
+      "always_up_accuracy_same_events": 49.63259853039412,
+      "compared_last_candle_n": 1416,
+      "accuracy_matched_last_candle": 49.505649717514125,
+      "last_candle_accuracy_matched": 50.21186440677966,
+      "coverage_pct": 20.180641682394175
+    },
+    "rsi_macd_turn": {
+      "n": 120,
+      "wins": 54,
+      "losses": 64,
+      "ties": 2,
+      "accuracy": 45.0,
+      "always_up_accuracy_same_events": 46.666666666666664,
+      "compared_last_candle_n": 117,
+      "accuracy_matched_last_candle": 44.44444444444444,
+      "last_candle_accuracy_matched": 46.15384615384615,
+      "coverage_pct": 1.6176867080075492
+    }
+  },
+  "test_cluster_bootstrap": {
+    "original_consensus": {
+      "days": 23,
+      "accuracy_ci_95": [
+        48.44,
+        52.66
+      ],
+      "delta_vs_always_up_ci_95": [
+        -0.66,
+        4.16
+      ]
+    },
+    "rsi_extreme": {
+      "days": 23,
+      "accuracy_ci_95": [
+        50.5,
+        61.68
+      ],
+      "delta_vs_always_up_ci_95": [
+        0.0,
+        12.02
+      ]
+    },
+    "bb_reversion": {
+      "days": 23,
+      "accuracy_ci_95": [
+        44.42,
+        54.4
+      ],
+      "delta_vs_always_up_ci_95": [
+        -5.71,
+        5.8
+      ]
+    },
+    "macd_cross": {
+      "days": 23,
+      "accuracy_ci_95": [
+        47.04,
+        54.59
+      ],
+      "delta_vs_always_up_ci_95": [
+        -0.9,
+        9.63
+      ]
+    },
+    "candlestick_patterns": {
+      "days": 23,
+      "accuracy_ci_95": [
+        47.06,
+        51.88
+      ],
+      "delta_vs_always_up_ci_95": [
+        -3.26,
+        2.89
+      ]
+    },
+    "rsi_macd_turn": {
+      "days": 19,
+      "accuracy_ci_95": [
+        36.87,
+        54.46
+      ],
+      "delta_vs_always_up_ci_95": [
+        -11.43,
+        7.19
+      ]
+    }
+  },
+  "test_delayed_60sec_proxy_selected": {
+    "n": 119,
+    "wins": 60,
+    "losses": 58,
+    "ties": 1,
+    "accuracy": 50.42016806722689,
+    "always_up_accuracy_same_events": 47.89915966386555,
+    "compared_last_candle_n": 116,
+    "accuracy_matched_last_candle": 49.13793103448276,
+    "last_candle_accuracy_matched": 46.55172413793103,
+    "coverage_pct": 100.0,
+    "delay_minutes": 1,
+    "original_selected_count": 120,
+    "excluded_due_to_missing_or_close": 1
+  },
+  "future_trial_required": true,
+  "recommendation": "ESPERAR: ninguna regla confirmada para IQ Option",
+  "limitations": [
+    "División cronológica retrospectiva: partes del historial ya fueron inspeccionadas anteriormente. No es validación ciega.",
+    "Datos IEX agregados por minuto, precio de apertura aproximado no necesariamente obtenible a tiempo.",
+    "La publicación de barra cerrada, órdenes, spreads y liquidación de NVIDIA Blitz son desconocidos.",
+    "Los resultados no modelan costos, cierres IQ, pago real ni automatización.",
+    "Se examinan seis familias de señales; comparaciones múltiples elevan falsos hallazgos.",
+    "Sólo 63 sesiones de un activo, sin prueba en periodos futuros."
+  ]
+}

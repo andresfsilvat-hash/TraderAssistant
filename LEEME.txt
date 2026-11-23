@@ -1,0 +1,33 @@
+TraderAssistant - Corrección VISUAL de escala 5 segundos
+Fecha: 18 noviembre 2026
+
+PROBLEMA VERIFICADO:
+- Último cambio de interfaz SOLO añade panel visual. No cambia las velas ni Alpaca.
+- La comparacion de captura muestra cotizacion IEX $151.955 e IQ Option $151.950 (0.00329%).
+- El ultimo cierre de vela 5s y el punto medio bid/ask pueden ser diferentes.
+- Cuando hay pocas velas 5s, la escala vertical automática exagera los movimientos en la pantalla.
+
+QUÉ CAMBIA:
+- Solo ui/live.html: rango minimo visual de 0.35% en escala vertical de 5s.
+- Etiqueta de antiguedad de la ultima vela 5 s, separada del precio bid/ask.
+- NO cambia el contenido, apertura/cierre, máximos, mínimos, volumen ni marcas de tiempo de ninguna vela.
+- NO toca Python del streaming, claves, API, REST, reloj, SSE o datos.
+- NO obliga a que los gráficos de IEX e IQ Option coincidan: usan referencias diferentes.
+
+PASOS:
+1. Cerrar TraderAssistant y Ctrl+C en PowerShell.
+2. Extraer ZIP en C:\Proyectos\TraderAssistant
+3. cd C:\Proyectos\TraderAssistant
+4. .\venv\Scripts\python.exe .\instalar_escala_5s.py --verificar
+5. Si aparece COMPATIBLE: .\venv\Scripts\python.exe .\instalar_escala_5s.py --instalar
+6. .\venv\Scripts\python.exe .\main.py
+
+PARA RESTAURAR:
+  Cerrar la app y ejecutar:
+  .\venv\Scripts\python.exe .\instalar_escala_5s.py --restaurar
+
+PRUEBA DIAGNÓSTICA (opcional, con la app abierta):
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\diagnostico_velas_5s.ps1
+  No imprime credenciales ni escribe archivos.
+
+Si el verificador detecta SHA distinto, NO fuerces la instalacion.

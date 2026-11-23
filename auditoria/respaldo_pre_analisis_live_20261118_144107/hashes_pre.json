@@ -1,0 +1,42 @@
+﻿[
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\app.py",
+        "SHA256":  "7EC5304A6D07719E4D3FE44B1C900132A203F7F8D0C233F4FCD61351DF802FC0"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\main.py",
+        "SHA256":  "67CD9EC723DAAB05E1B498FD765F46763FCA90E320C6D1AE99F7CC9AC08BE2DC"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\alpaca_live.py",
+        "SHA256":  "10BA6B883803C5E1DB04666B3855B70542C47C47F16E544D9B8D2D501EBB8127"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\ui\\live.html",
+        "SHA256":  "5EC5B7B11A8275D4CBCAF173B6BFA31EEF2DAD2784962271F895AEA63EECCD04"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\requirements.txt",
+        "SHA256":  "72040A98A64E52FB5280AEE257E335E4F7BAA7DAA2B21C0E5365CC42F7FB3157"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\config.json",
+        "SHA256":  "76488ED306B9227B1CA296EFC0B85151845ED82CB77CCA32E23F0C8B0CEE492A"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\screener\\indicator_detector.py",
+        "SHA256":  "5CCBB66A3E5CFF85B08941C5E241CC0B6717990042F4A09B299694706C3CC7E0"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\screener\\pattern_detector.py",
+        "SHA256":  "B10B67AB5DFEEDADD0DF1F73F19235182C7AFFD546D1981234895868FD894546"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\screener\\scorer.py",
+        "SHA256":  "99AE7B48DE29D6B5DF0CC2CEB4E2710655983518F139DDF335A331D82D142190"
+    },
+    {
+        "File":  "C:\\Proyectos\\TraderAssistant\\screener\\data_fetcher.py",
+        "SHA256":  "B8B428C6C9558FB8C4BA15B95C2B36213C79F2388D7B737989514B9C053E238C"
+    }
+]

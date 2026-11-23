@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TraderAssistant · Multi-activo IEX (v4)</title>
+<style>
+:root {color-scheme:dark;--bg:#0e1119;--panel:#181d2a;--panel2:#121622;--edge:#2a3447;--text:#e6edf8;--muted:#92a3bb;--green:#23c483;--red:#f4525a;--blue:#4d91fa}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:'Segoe UI',Arial,sans-serif;color:var(--text);background:var(--bg)}
+a{color:#abc9ff;text-decoration:none}button{background:transparent;border:1px solid var(--edge);color:var(--muted);padding:9px 15px;cursor:pointer;border-radius:6px;font:inherit;font-size:13px}
+button.active{background:#2261b8;color:#fff;border-color:#327feb}
+#price.flash{animation:priceflash .5s ease-out}@keyframes priceflash{from{background:#2d4865}to{background:transparent}}
+.liveFlag{font-size:11px;color:var(--muted);border:1px solid var(--edge);padding:6px 8px;border-radius:5px}button:hover{border-color:#7189ab}
+.top{min-height:56px;background:var(--panel);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 19px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.brand{font-size:17px;font-weight:750;letter-spacing:.2px}.brand small{font-size:12px;font-weight:500;color:var(--muted);margin-left:9px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.back{font-size:12px;border:1px solid var(--edge);padding:9px 12px;border-radius:6px}
+.content{padding:14px 16px}.summary{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.05fr;gap:12px;margin-bottom:12px}
+.stat{border:1px solid var(--edge);background:var(--panel);padding:13px 16px;border-radius:8px;min-height:92px}.stat .k{color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}.stat .v{font-size:26px;font-variant-numeric:tabular-nums;font-weight:700;padding-top:6px}.stat .s{color:var(--muted);font-size:12px;margin-top:4px}
+.stat.small .v{font-size:19px}.up{color:var(--green)}.down{color:var(--red)}.flat{color:var(--muted)}
+ .quoteStrip{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:10px 14px;margin-bottom:12px;background:var(--panel2);border:1px solid var(--edge);border-radius:8px;font-size:12px;color:var(--muted)}
+.quoteStrip strong{color:var(--text);font-variant-numeric:tabular-nums;font-size:15px}.quoteStrip .qactive{color:var(--green)}
+#quote-mid.flash{animation:priceflash .5s ease-out}
+.assetSelect{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.assetSelect select{background:#101522;border:1px solid var(--edge);border-radius:6px;color:var(--text);padding:8px 10px;font:inherit;font-size:13px;cursor:pointer}
+.marketStrip{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:11px 15px;margin-bottom:12px;border:1px solid var(--edge);background:var(--panel);border-radius:8px;font-size:13px}
+.marketStrip .mLabel{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.marketStrip .mValue{color:var(--text);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.marketStrip .mSub{color:var(--muted);font-size:11px}
+.marketStrip .open{color:var(--green)}.marketStrip .closed{color:#f0c479}
+#symbol-error{color:#fda4af;font-size:12px}
+.chartPanel{background:var(--panel2);border:1px solid var(--edge);border-radius:9px;overflow:hidden}
+.chartHead{padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.chartHead .name{font-size:14px;font-weight:650}.time{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#chart{height:calc(100vh - 300px);min-height:390px;width:100%;position:relative;background:var(--bg)}
+.empty{position:absolute;inset:20px;display:flex;justify-content:center;align-items:center;text-align:center;color:var(--muted);pointer-events:none;font-size:15px}
+.details{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:11px 15px;background:var(--panel);font-size:12px;color:var(--muted);border-top:1px solid var(--edge)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--edge);border-radius:99px;color:#d5e5fd;font-size:12px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#94a3b8}.dot.good{background:var(--green)}.dot.bad{background:var(--red)}
+.notice{margin:12px 2px;color:var(--muted);font-size:12px;line-height:1.5}.error{color:#fda4af;word-break:break-word}
+.progress{height:3px;background:#293346;overflow:hidden}.progress>div{height:100%;width:0;background:var(--blue);transition:width .7s linear}
+@media(max-width:1100px){.summary{grid-template-columns:1fr 1fr}#chart{height:57vh}}
+@media(max-width:650px){.summary{grid-template-columns:1fr}.stat{min-height:75px}.brand small{display:block;margin:3px 0 0}}
+
+/* BEGIN TA_VISUAL_DECISION_20261118_V1 (sin llamadas a red ni análisis en segundo plano) */
+.decisionStrip{border:1px solid #344864;background:#151c2b;border-radius:8px;padding:7px 12px;margin-bottom:9px;flex-shrink:0;color:var(--text)}
+.decisionHeading{color:#9bc9fa;font-size:10px;font-weight:700;letter-spacing:.3px;margin-bottom:5px;text-transform:uppercase}
+.decisionGrid{display:grid;grid-template-columns:1.15fr 1.05fr 1.05fr .66fr 1.12fr 1fr;align-items:center;min-width:0;gap:0}
+.decisionCell{min-width:0;padding:0 12px;border-right:1px solid var(--edge)}
+.decisionCell:first-child{padding-left:0}
+.decisionCell:last-child{padding-right:0;border-right:0}
+.decisionLabel{font-size:10px;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.decisionValue{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;margin-top:4px}
+.decisionWait{display:inline-block;background:#2a405a;border:1px solid #415d7c;border-radius:5px;padding:3px 13px;font-size:15px;letter-spacing:.4px}
+.decisionClockBox{background:#1b2b40;border:1px solid #496b93;border-radius:6px;padding:3px 8px}
+.decisionClockBox .decisionValue{font-size:16px;margin-top:1px}
+.decisionReason{margin-top:5px;padding-top:4px;border-top:1px solid var(--edge);color:var(--muted);font-size:11px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+@media (max-width:1230px){
+ .decisionGrid{grid-template-columns:1.1fr 1fr 1fr .7fr 1fr .92fr}
+ .decisionCell{padding:0 7px}
+ .decisionValue{font-size:12px}.decisionClockBox .decisionValue{font-size:14px}
+}
+@media (max-width:1100px){
+ .decisionGrid{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:8px}
+ .decisionCell:nth-child(3){border-right:0}
+ .decisionReason{white-space:normal}
+}
+@media (max-width:650px){
+ .decisionGrid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:8px}
+ .decisionCell:nth-child(3){border-right:1px solid var(--edge)}
+ .decisionCell:nth-child(even){border-right:0}
+}
+/* END TA_VISUAL_DECISION_20261118_V1 */
+/* BEGIN TA_VIEWPORT_FIT_20261118_V1
+   Ajuste de altura de la VISTA, sin tocar los datos ni la lógica de mercado.
+   Las secciones informativas no crecen al maximizar; el gráfico absorbe
+   el espacio libre. A resoluciones pequeñas se conserva el desplazamiento.
+*/
+@media screen and (min-width: 1101px) and (min-height: 650px) {
+  html, body {height:100%; overflow:hidden;}
+  body {height:100vh; height:100dvh; display:flex; flex-direction:column;}
+  header.top {flex:0 0 auto;}
+  main.content {
+    flex:1 1 auto; min-height:0; overflow:hidden;
+    display:flex; flex-direction:column;
+    padding:10px 14px 8px;
+  }
+  main.content > .marketStrip {
+    flex:0 0 auto; margin-bottom:8px; padding:8px 12px;
+  }
+  main.content > .summary {flex:0 0 auto; margin-bottom:8px;}
+  main.content > .summary .stat {min-height:0; padding:9px 12px;}
+  main.content > .quoteStrip {
+    flex:0 0 auto; margin-bottom:8px; padding:7px 12px;
+  }
+  main.content > .decisionStrip {
+    flex:0 0 auto; margin-bottom:8px; padding:6px 10px;
+  }
+  main.content > .chartPanel {
+    flex:1 1 0; min-height:0;
+    display:flex; flex-direction:column;
+  }
+  main.content > .chartPanel > .chartHead {
+    flex:0 0 auto; padding:8px 11px;
+  }
+  main.content > .chartPanel > #chart {
+    flex:1 1 0; min-height:0 !important; height:auto !important;
+  }
+  main.content > .chartPanel > .progress,
+  main.content > .chartPanel > .details {flex:0 0 auto;}
+  main.content > .chartPanel > .details {
+    padding:6px 10px; gap:6px 12px; font-size:11px;
+  }
+  main.content > .notice {
+    flex:0 0 auto; margin:5px 2px 0; line-height:1.3; font-size:11px;
+  }
+}
+/* END TA_VIEWPORT_FIT_20261118_V1 */
+
+</style>
+<script src="/vendor/lightweight-charts.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">TRADERASSISTANT <small id="asset-brand">NVIDIA (NVDA) · datos Alpaca IEX</small></div>
+  <div class="toolbar"><label class="assetSelect" for="symbol-select">Analizar:
+    <select id="symbol-select" aria-label="Elegir activo">
+      <option value="NVDA">NVIDIA · NVDA</option><option value="SPY">S&P 500 · SPY</option>
+      <option value="QQQ">Nasdaq 100 · QQQ</option><option value="MSFT">Microsoft · MSFT</option>
+      <option value="AAPL">Apple · AAPL</option><option value="AMD">AMD</option>
+    </select></label><span id="symbol-error"></span><span class="pill"><span class="dot" id="dot"></span><span id="connection">Conectando…</span></span><span class="liveFlag" id="delivery">Canal: conectando</span><span class="liveFlag" id="version">v4.0.0</span><a class="back" href="/">Ir al analizador histórico</a></div>
+</header>
+<main class="content">
+  <section class="marketStrip" aria-live="polite">
+    <div><div class="mLabel">Mercado estadounidense · horario regular</div><div class="mValue" id="regular-status">Consultando Alpaca…</div><div class="mSub" id="regular-source">NYSE/Nasdaq, no estado del WebSocket</div></div>
+    <div><div class="mLabel" id="market-next-label">Próxima apertura</div><div class="mValue" id="market-next-time">—</div></div>
+    <div><div class="mLabel" id="market-countdown-label">Tiempo restante</div><div class="mValue" id="market-countdown">—</div></div>
+    <div><div class="mSub">Hora Ecuador (UTC−5). Puede haber operaciones IEX pre/postmercado, sin garantía de ticks.</div></div>
+  </section>
+  <section class="summary">
+    <div class="stat"><div class="k">Precio de referencia IEX</div><div class="v" id="price">—</div><div class="s" id="trade-time">Esperando la primera operación</div></div>
+    <div class="stat small"><div class="k">Movimiento de la vela</div><div class="v flat" id="movement">—</div><div class="s" id="movement-detail">Variación observada, no predicción</div></div>
+    <div class="stat small"><div class="k">Último dato recibido</div><div class="v" id="age">—</div><div class="s" id="received-time">Sin operaciones nuevas</div><div class="s" id="lag">Retraso: por medir</div><div class="s" id="paint-delay">Pantalla: por medir</div></div>
+    <div class="stat small"><div class="k">Vela mostrada</div><div class="v" id="bar-status">—</div><div class="s" id="bar-start">Sin datos</div></div>
+  </section>
+  <section class="quoteStrip" aria-live="polite">
+    <span>Compra (bid): <strong id="quote-bid">—</strong></span>
+    <span>Venta (ask): <strong id="quote-ask">—</strong></span>
+    <span>Medio indicativo: <strong id="quote-mid">—</strong></span>
+    <span id="quote-state">Cotizaciones IEX: esperando datos</span>
+    <span id="market-state">Sin operaciones no hay cambios reales</span>
+  </section>
+  <!-- BEGIN TA_VISUAL_DECISION_20261118_V1: panel exclusivamente informativo -->
+  <section class="decisionStrip" aria-label="Panel de observación; todavía no emite señales de entrada">
+    <div class="decisionHeading">Panel de decisiones · observación · sin señales validadas</div>
+    <div class="decisionGrid">
+      <div class="decisionCell"><div class="decisionLabel">Decisión actual</div><div class="decisionValue"><span class="decisionWait">ESPERAR</span></div></div>
+      <div class="decisionCell"><div class="decisionLabel">Dirección (última vela)</div><div class="decisionValue" id="decision-direction">Sin datos</div></div>
+      <div class="decisionCell"><div class="decisionLabel">Hora de entrada</div><div class="decisionValue">—:—:—</div></div>
+      <div class="decisionCell"><div class="decisionLabel">Duración</div><div class="decisionValue">—</div></div>
+      <div class="decisionCell"><div class="decisionLabel">Salida / vencimiento</div><div class="decisionValue">—:—:—</div></div>
+      <div class="decisionCell"><div class="decisionClockBox"><div class="decisionLabel">Reloj Ecuador</div><div class="decisionValue" id="decision-clock">--:--:-- EC</div></div></div>
+    </div>
+    <div class="decisionReason" id="decision-reason">Esperando la última vela oficial cerrada de 1 minuto. No hay reglas de entrada validadas.</div>
+  </section>
+  <!-- END TA_VISUAL_DECISION_20261118_V1 -->
+  <section class="chartPanel">
+    <div class="chartHead">
+      <div class="name"><span id="chart-symbol">NVDA</span> <span style="font-weight:400;color:var(--muted)">· precio IEX</span></div>
+      <div class="time"><span style="color:var(--muted);font-size:12px;margin-right:4px">Velas</span><button id="tf5s" type="button">5 segundos</button><button id="tf1m" type="button" class="active">1 minuto</button><button id="tf5m" type="button">5 minutos</button><button id="follow" type="button" class="active" title="Regresar a las últimas velas">Seguir precio</button><button id="toggle-quote-line" type="button" aria-pressed="false" title="Mostrar u ocultar la línea indicativa del punto medio bid/ask">Línea: OFF</button><button id="toggle-volume" type="button" aria-pressed="false" title="Mostrar u ocultar las barras de volumen">Volumen: OFF</button></div>
+    </div>
+    <div id="chart"><div id="empty" class="empty">Conectando con Alpaca y cargando velas…</div></div>
+    <div class="progress"><div id="progress"></div></div>
+    <div class="details">
+      <span id="count">0 velas</span><span id="trade-state">Esperando cotizaciones…</span><span id="visual-age">Pantalla: esperando datos</span><span id="trade-count">Operaciones recibidas: 0</span><span id="bar-quality">Velas: esperando</span><span>Hora: Ecuador (UTC−5)</span><span>Fuente: IEX, una sola bolsa</span><span id="error" class="error"></span>
+    </div>
+  </section>
+  <p class="notice">v4: datos IEX por WebSocket (trades y cotizaciones). La linea azul clara muestra el punto medio bid/ask, no un precio negociado. Las velas de 1 minuto cerradas provienen de Alpaca; la vela en formación y las de 5 segundos son indicativas, construidas con operaciones elegibles observadas por el programa; pueden recuperarse desde la caché local tras reiniciar. Sin operaciones ni cotizaciones nuevas, el gráfico y el precio permanecen sin cambios reales; solo el reloj y la conexión siguen activos. No representa todas las bolsas ni predice precios. Solo lectura: ninguna orden bursátil.</p>
+</main>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const TZ = 'America/Guayaquil';
+let marketClock=null;
+let activeSymbol='NVDA';
+function countdown(secs) {
+  if(!Number.isFinite(secs))return '—';
+  const n=Math.max(0,Math.ceil(secs));
+  const h=Math.floor(n/3600),m=Math.floor((n%3600)/60),s=n%60;
+  return [h,m,s].map(v=>String(v).padStart(2,'0')).join(':');
+}
+function renderMarketClock(){
+  const m=marketClock;
+  const checked=m&&Date.parse(m.checked_at||'');
+  const stale=!Number.isFinite(checked)||Date.now()-checked>10*60*1000;
+  if(!m||m.source!=='alpaca'||stale){
+    $('regular-status').textContent='Horario sin verificar';
+    $('regular-status').className='mValue';
+    $('market-next-time').textContent='—';$('market-countdown').textContent='—';
+    $('regular-source').textContent=m?.error||'Consultando reloj de mercado de Alpaca';
+    return;
+  }
+  const open=m.is_open===true;
+  $('regular-status').textContent=open?'ABIERTO':'CERRADO';
+  $('regular-status').className='mValue '+(open?'open':'closed');
+  $('regular-source').textContent='Estado validado por reloj de Alpaca · sesión regular';
+  $('market-next-label').textContent=open?'Próximo cierre':'Próxima apertura';
+  const next=open?m.next_close:m.next_open;
+  const timestamp=Date.parse(next||'');
+  $('market-next-time').textContent=Number.isFinite(timestamp)?fullTime.format(new Date(timestamp))+' EC':'—';
+  $('market-countdown-label').textContent=open?'Cierra en':'Abre en';
+  $('market-countdown').textContent=Number.isFinite(timestamp)?countdown((timestamp-Date.now())/1000):'—';
+}
+const fullTime = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const hours = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,hour:'2-digit',minute:'2-digit',hour12:false});
+const hoursSeconds = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const days = new Intl.DateTimeFormat('es-EC', {timeZone:TZ,day:'2-digit',month:'short'});
+const fromUnix = (ts) => new Date(Number(ts)*1000);
+function timeLabel(iso) {if(!iso)return '—';const date=new Date(iso);return Number.isFinite(date.getTime())?fullTime.format(date)+' EC':'—';}
+function timeAge(iso) {const n=Date.parse(iso||'');return Number.isFinite(n)?Math.max(0,Math.floor((Date.now()-n)/1000)):null;}
+function textAge(s) {return s===null?'—':s+' s';}
+function volumePoint(b) {return {time:b.time,value:b.volume,color:b.close>=b.open?'#23c48344':'#f4525a44'};}
+
+// BEGIN TA_VISUAL_DECISION_20261118_V1
+// Lectura muy ligera de un dato que la UI YA recibió: no hace peticiones,
+// no calcula indicadores de trading, no interfiere con SSE ni WebSocket.
+const decisionClockFormatter = new Intl.DateTimeFormat('es-EC', {
+  timeZone: TZ, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+});
+const decisionCandleFormatter = new Intl.DateTimeFormat('es-EC', {
+  timeZone: TZ, hour:'2-digit', minute:'2-digit', hour12:false
+});
+let decisionLastSignature = null;
+function paintDecisionClock(){
+  $('decision-clock').textContent=decisionClockFormatter.format(new Date())+' EC';
+}
+function paintDecisionObservation(data){
+  const candles=data&&Array.isArray(data.candles)?data.candles:[];
+  let official=null;
+  for(let i=candles.length-1;i>=0;i--){
+    if(candles[i]&&candles[i].provisional===false){official=candles[i];break;}
+  }
+  const symbol=(data&&data.symbol)||activeSymbol;
+  const sig=official?[symbol,official.time,official.open,official.close].join(':'):symbol+':no-official';
+  if(sig===decisionLastSignature)return;
+  decisionLastSignature=sig;
+  if(!official){
+    $('decision-direction').textContent='Sin datos';
+    $('decision-reason').textContent='Sin vela oficial cerrada de 1 minuto. ESPERAR; no hay señal validada.';
+    return;
+  }
+  const pct=(Number(official.close)-Number(official.open))/Number(official.open)*100;
+  if(!Number.isFinite(pct))return;
+  const direction=pct>0?'Alcista':pct<0?'Bajista':'Sin cambio';
+  $('decision-direction').textContent=direction+' (observado)';
+  const stamp=decisionCandleFormatter.format(new Date(Number(official.time)*1000));
+  const signed=pct>0?'+':'';
+  $('decision-reason').textContent='Última vela oficial 1m de '+symbol+' iniciada '+stamp+' EC: '+signed+pct.toFixed(3)+'%. Es un dato pasado, NO una señal SUBE/BAJA.';
+}
+// END TA_VISUAL_DECISION_20261118_V1
+const chartEl = $('chart');
+if(typeof LightweightCharts==='undefined') {
+  $('empty').textContent='Error: no se pudo cargar lightweight-charts.js';
+  throw new Error('No se cargo la libreria local de graficos');
+}
+const chart = LightweightCharts.createChart(chartEl, {
+  width:chartEl.clientWidth,height:Math.max(160,chartEl.clientHeight-1),
+  layout:{background:{color:'#0e1119'},textColor:'#92a3bb'},
+  grid:{vertLines:{color:'#21283a'},horzLines:{color:'#21283a'}},
+  crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+  rightPriceScale:{borderColor:'#34435c'},
+  localization:{locale:'es-EC',timeFormatter:(t)=>fullTime.format(fromUnix(t))+' EC'},
+  timeScale:{borderColor:'#34435c',timeVisible:true,secondsVisible:false,rightOffset:7,
+    tickMarkFormatter:(t,k)=>k<=2?days.format(fromUnix(t)):hours.format(fromUnix(t))}
+});
+// BEGIN TA_5S_STABLE_SCALE_20261118_V1
+// Correccion exclusivamente VISUAL: evita exagerar en pixeles movimientos de
+// centavos cuando la grafica de cinco segundos contiene muy pocas velas.
+// No modifica OHLC, fuente, WebSocket, cache, SSE ni cotizaciones IEX.
+const ta5sScale = {active:false};
+function ta5sAutoscale(original){
+  const info=original();
+  if(!ta5sScale.active || !info || !info.priceRange)return info;
+  const lo=Number(info.priceRange.minValue),hi=Number(info.priceRange.maxValue);
+  if(!Number.isFinite(lo)||!Number.isFinite(hi)||lo<=0||hi<lo)return info;
+  // Un rango vertical minimo de 0.35 % reduce el zoom cuando hay pocas barras.
+  // No es una normalizacion de precios ni una promesa de coincidencia con IQ.
+  const minimum=(lo+hi)/2*0.0035;
+  const missing=minimum-(hi-lo);
+  if(missing<=0)return info;
+  const margin=missing/2;
+  return {...info,priceRange:{minValue:Math.max(0.000001,lo-margin),maxValue:hi+margin}};
+}
+// END TA_5S_STABLE_SCALE_20261118_V1
+const candle = chart.addCandlestickSeries({autoscaleInfoProvider:ta5sAutoscale,upColor:'#23c483',downColor:'#f4525a',borderUpColor:'#23c483',borderDownColor:'#f4525a',wickUpColor:'#23c483',wickDownColor:'#f4525a'});
+const quoteLine = chart.addLineSeries({color:'#6db9ff',lineWidth:2,
+  pointMarkersVisible:true,pointMarkersRadius:2,lastValueVisible:true,priceLineVisible:false,
+  title:'Punto medio bid/ask (indicativo)'});
+const volume = chart.addHistogramSeries({color:'#5475ae66',priceFormat:{type:'volume'},priceScaleId:'volume'});
+chart.priceScale('volume').applyOptions({scaleMargins:{top:.82,bottom:0}});
+
+// VISTA SOLO VELAS: alterna únicamente la visibilidad; no elimina las series ni sus datos.
+// Los dos controles son independientes y comienzan apagados en una instalación nueva.
+const OVERLAY_PREF_KEY = 'traderassistant-v4-overlay-visibility';
+function readOverlayPreferences(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(OVERLAY_PREF_KEY) || '{}');
+    return {line: saved.line === true, volume: saved.volume === true};
+  } catch (_) { return {line:false, volume:false}; }
+}
+let overlayPreferences = readOverlayPreferences();
+function applyOverlayPreferences(){
+  quoteLine.applyOptions({visible:overlayPreferences.line});
+  volume.applyOptions({visible:overlayPreferences.volume});
+  const lineButton = $('toggle-quote-line');
+  const volumeButton = $('toggle-volume');
+  lineButton.textContent = 'Línea: ' + (overlayPreferences.line ? 'ON' : 'OFF');
+  volumeButton.textContent = 'Volumen: ' + (overlayPreferences.volume ? 'ON' : 'OFF');
+  lineButton.classList.toggle('active', overlayPreferences.line);
+  volumeButton.classList.toggle('active', overlayPreferences.volume);
+  lineButton.setAttribute('aria-pressed', String(overlayPreferences.line));
+  volumeButton.setAttribute('aria-pressed', String(overlayPreferences.volume));
+}
+function saveOverlayPreferences(){
+  try { localStorage.setItem(OVERLAY_PREF_KEY, JSON.stringify(overlayPreferences)); }
+  catch (_) { /* localStorage puede estar deshabilitado en algunos WebView */ }
+}
+$('toggle-quote-line').addEventListener('click',()=>{
+  overlayPreferences.line = !overlayPreferences.line;
+  applyOverlayPreferences();
+  saveOverlayPreferences();
+});
+$('toggle-volume').addEventListener('click',()=>{
+  overlayPreferences.volume = !overlayPreferences.volume;
+  applyOverlayPreferences();
+  saveOverlayPreferences();
+});
+applyOverlayPreferences();
+
+
+let tf='1m';
+let lastPayload=null;
+let lastSignature='';
+let lastTime=null;
+let count=0;
+let revision=null;
+let firstDraw=true;
+let following=true;
+let lastTradeStamp=null;
+let lastRenderedTradeStamp=null;
+let lastDisplayedQuote='';
+let lastQuoteSignature='';
+let previousQuoteTimestamp=null;
+let lastFetchedAt=0;
+let fetchBusy=false;
+let fetchQueued=false;
+let fetchTimer=null;
+let sseOk=false;
+let lastSelectedFromUI='NVDA';
+
+function seriesFor(data) {
+  if(tf==='5s')return data.short_candles||[];
+  if(tf==='1m')return data.candles||[];
+  const combined=[];
+  for(const b of data.candles||[]) {
+    const bucket=Math.floor(b.time/300)*300;
+    const tail=combined[combined.length-1];
+    if(tail&&tail.time===bucket) {
+      tail.high=Math.max(tail.high,b.high);
+      tail.low=Math.min(tail.low,b.low);
+      tail.close=b.close;
+      tail.volume+=b.volume;
+      tail.provisional=tail.provisional||b.provisional;
+    }else combined.push({...b,time:bucket});
+  }
+  return combined;
+}
+function tfSeconds() {return tf==='5s'?5:tf==='5m'?300:60;}
+function focusLatest(n=count) {
+  if(!n)return;
+  const shown=tf==='5s'?75:65;
+  chart.timeScale().setVisibleLogicalRange({from:n-shown,to:n+5});
+}
+function updateTfButtons() {
+  for(const t of ['5s','1m','5m'])$('tf'+t).classList.toggle('active',tf===t);
+  chart.applyOptions({timeScale:{secondsVisible:tf==='5s',timeVisible:true,
+    tickMarkFormatter:(t,k)=>k<=2?days.format(fromUnix(t)):(tf==='5s'?hoursSeconds:hours).format(fromUnix(t))}});
+}
+function resetForAsset(){
+  decisionLastSignature=null;
+  $('decision-direction').textContent='Sin datos';
+  $('decision-reason').textContent='Cargando la última vela oficial del activo seleccionado. No hay señal validada.';
+  lastSignature='';lastTime=null;count=0;revision=null;firstDraw=true;
+  lastQuoteSignature='';previousQuoteTimestamp=null;lastPayload=null;
+  lastTradeStamp=null;lastDisplayedQuote='';lastRenderedTradeStamp=null;
+  candle.setData([]);volume.setData([]);quoteLine.setData([]);
+  $('empty').style.display='flex';$('empty').textContent='Cargando activo seleccionado…';
+}
+$('symbol-select').addEventListener('change',async(event)=>{
+  const symbol=event.target.value;
+  if(symbol===activeSymbol)return;
+  const select=$('symbol-select');select.disabled=true;$('symbol-error').textContent='';
+  try{
+    const resp=await fetch('/api/alpaca/symbol',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol})});
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const result=await resp.json();
+    activeSymbol=result.symbol;
+    resetForAsset();
+    scheduleFetch();
+  }catch(err){
+    select.value=activeSymbol;
+    $('symbol-error').textContent='No se pudo cambiar el activo ('+(err.message||'Error')+')';
+  }finally{select.disabled=false;}
+});
+function changeTf(value) {
+  if(tf===value)return;
+  tf=value;ta5sScale.active=(tf==='5s');lastSignature='';lastTime=null;count=0;revision=null;firstDraw=true;
+  candle.setData([]);volume.setData([]);quoteLine.setData([]);lastQuoteSignature='';previousQuoteTimestamp=null;
+  updateTfButtons();if(lastPayload)drawData(lastPayload);
+}
+$('tf5s').addEventListener('click',()=>changeTf('5s'));
+$('tf1m').addEventListener('click',()=>changeTf('1m'));
+$('tf5m').addEventListener('click',()=>changeTf('5m'));
+$('follow').addEventListener('click',()=>{
+  following=!following;$('follow').classList.toggle('active',following);
+  if(following)focusLatest();
+});
+
+function quoteSeriesFor(data){
+  const aggregate=new Map();
+  const duration=tfSeconds();
+  for(const p of data.quote_points||[]) {
+    if(!Number.isFinite(Number(p.time))||!Number.isFinite(Number(p.value))||Number(p.value)<=0)continue;
+    const bucket=Math.floor(Number(p.time)/duration)*duration;
+    aggregate.set(bucket,{time:bucket,value:Number(p.value)});
+  }
+  return Array.from(aggregate.values()).sort((a,b)=>a.time-b.time);
+}
+function drawData(data) {
+  if(data.symbol&&data.symbol!==activeSymbol){
+    resetForAsset();activeSymbol=data.symbol;
+  }
+  const bars=seriesFor(data), last=bars[bars.length-1];
+  const sig=last?[bars.length,last.time,last.open,last.high,last.low,last.close,last.volume,Number(!!last.provisional)].join(':'):'empty';
+  const changedRev=revision!==null&&revision!==data.series_revision;
+  const hadData=count>0;
+  if(sig!==lastSignature||changedRev) {
+    const needsReset=firstDraw||changedRev||!last||lastTime===null||bars.length<count||bars.length>count+1||last.time<lastTime;
+    if(needsReset) {
+      candle.setData(bars.map(b=>({time:b.time,open:b.open,high:b.high,low:b.low,close:b.close})));
+      volume.setData(bars.map(volumePoint));
+      if(following&&bars.length&&(firstDraw||!hadData||changedRev))focusLatest(bars.length);
+    }else if(last) {
+      candle.update({time:last.time,open:last.open,high:last.high,low:last.low,close:last.close});
+      volume.update(volumePoint(last));
+      if(following&&last.time>lastTime)chart.timeScale().scrollToRealTime();
+    }
+    firstDraw=false;
+    lastSignature=sig;
+    lastTime=last?last.time:null;
+    count=bars.length;
+  }
+  const quotes=quoteSeriesFor(data);
+  const qlast=quotes[quotes.length-1];
+  const qsig=qlast?[tf,quotes.length,qlast.time,qlast.value].join(':'):'empty';
+  if(qsig!==lastQuoteSignature){
+    quoteLine.setData(quotes);
+    if(following&&qlast&&previousQuoteTimestamp!==null&&qlast.time>previousQuoteTimestamp)chart.timeScale().scrollToRealTime();
+    previousQuoteTimestamp=qlast?qlast.time:null;lastQuoteSignature=qsig;
+  }
+  revision=data.series_revision;
+  $('count').textContent=bars.length+' velas · '+tf;
+  $('empty').style.display=bars.length?'none':'flex';
+  $('empty').textContent=data.status==='error'?'Alpaca: error de conexion':tf==='5s'?'Esperando operaciones elegibles en vivo…':'Esperando historial o nueva vela IEX…';
+  const source = tf==='5s' ? (last?.origin==='cache'?'caché':last?.origin==='mixed'?'mixta':'en vivo')
+    : (data.history_source==='cache'?'caché':'Alpaca');
+  $('bar-quality').textContent=tf==='5s'?'Velas 5 s indicativas · '+source:
+    last?.provisional?'Última vela: provisional':'Velas 1m · '+source;
+  paintDecisionObservation(data);
+  drawClock(data);
+}
+
+function drawClock(data) {
+  if(!data)return;
+  marketClock=data.market_clock||null;
+  renderMarketClock();
+  const now=Date.now();
+  const recentTrade=data.last_trade;
+  const last=data.last_trade||null;
+  const lastAt=last?Date.parse(last.timestamp):NaN;
+  const arrivedAt=data.last_received_at?Date.parse(data.last_received_at):NaN;
+  const arrivedAge=timeAge(data.last_received_at);
+  const tradeAge=Number.isFinite(lastAt)?Math.max(0,Math.floor((now-lastAt)/1000)):null;
+  const packetAge=timeAge(data.last_feed_message_at);
+  $('version').textContent='v'+(data.version_info||'4')+(data.build?' · '+data.build:'');
+  if(data.symbol&&data.symbol!==activeSymbol){
+    resetForAsset();activeSymbol=data.symbol;
+  }
+  if(data.symbol){
+    $('symbol-select').value=data.symbol;
+    $('chart-symbol').textContent=data.symbol;
+    $('asset-brand').textContent=(data.symbol_name||data.symbol)+' ('+data.symbol+') · datos Alpaca IEX';
+    document.title='TraderAssistant · '+data.symbol+' · IEX';
+  }
+  const liveQuote=data.last_quote;
+  const quoteAt=liveQuote?Date.parse(liveQuote.timestamp):NaN;
+  const quoteFresh=Number.isFinite(quoteAt)&&now-quoteAt<15000&&now-quoteAt>=-3000;
+  const tradeFresh=Number.isFinite(lastAt)&&now-lastAt<15000&&now-lastAt>=-3000;
+  const newestCandle=(data.candles||[]).slice(-1)[0];
+  const quoteIsNewer=quoteFresh&&(!tradeFresh||quoteAt>lastAt);
+  if(quoteIsNewer){
+    $('price').textContent='$'+Number(liveQuote.mid).toFixed(3);
+    $('trade-time').textContent='Punto medio bid/ask (NO operacion): '+timeLabel(liveQuote.timestamp);
+  }else if(last){
+    $('price').textContent='$'+Number(last.price).toFixed(3);
+    $('trade-time').textContent=(tradeFresh?'Operación: ':'Última operación registrada (NO actual): ')+timeLabel(last.timestamp);
+  }else if(newestCandle){
+    $('price').textContent='$'+Number(newestCandle.close).toFixed(3);
+    $('trade-time').textContent='Último cierre de vela IEX (histórico): '+timeLabel(new Date(newestCandle.time*1000).toISOString());
+  }else{
+    $('price').textContent='—';$('trade-time').textContent='Esperando información de Alpaca IEX';
+  }
+  $('quote-bid').textContent=liveQuote?'$'+Number(liveQuote.bid).toFixed(3):'—';
+  $('quote-ask').textContent=liveQuote?'$'+Number(liveQuote.ask).toFixed(3):'—';
+  $('quote-mid').textContent=liveQuote?'$'+Number(liveQuote.mid).toFixed(3):'—';
+  const qAge=timeAge(data.last_quote_received_at);
+  $('quote-state').textContent=liveQuote?(qAge!==null&&qAge<15?'COTIZACION EN VIVO · ':'Última cotización · ')+timeLabel(liveQuote.timestamp):
+    data.quotes_subscribed?'Sin cotizaciones IEX recibidas':'Esperando suscripción a cotizaciones';
+  $('quote-state').className=liveQuote&&qAge!==null&&qAge<15?'qactive':'';
+  const quoteId=liveQuote?liveQuote.timestamp+':'+liveQuote.mid:'';
+  if(quoteId&&quoteId!==lastDisplayedQuote){
+    if(lastDisplayedQuote){$('quote-mid').classList.remove('flash');void $('quote-mid').offsetWidth;$('quote-mid').classList.add('flash');}
+    lastDisplayedQuote=quoteId;
+  }
+  const estParts=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+  const field=(x)=>estParts.find(p=>p.type===x)?.value||'0';
+  const marketMinute=Number(field('hour'))*60+Number(field('minute'));
+  const iexUsualHours=['Mon','Tue','Wed','Thu','Fri'].includes(field('weekday'))&&marketMinute>=480&&marketMinute<1020;
+  $('market-state').textContent=(tradeFresh||quoteFresh)?'Datos IEX recientes':
+    iexUsualHours?'SIN TICKS RECIENTES · no hay actualizaciones reales':
+    'SIN TICKS ACTUALES · fuera de horario habitual IEX (08:00–17:00 NY)';
+  if(last&&last.timestamp!==lastTradeStamp) {
+    if(lastTradeStamp!==null) {
+      $('price').classList.remove('flash');void $('price').offsetWidth;$('price').classList.add('flash');
+    }
+    lastTradeStamp=last.timestamp;
+  }
+  const qArrived=data.last_quote_received_at?Date.parse(data.last_quote_received_at):NaN;
+  const gotQuote=Number.isFinite(qArrived)&&(!Number.isFinite(arrivedAt)||qArrived>arrivedAt);
+  const lastPacket=gotQuote?data.last_quote_received_at:data.last_received_at;
+  $('age').textContent=textAge(timeAge(lastPacket));
+  $('received-time').textContent=lastPacket?(gotQuote?'Cotización recibida: ':'Operación recibida: ')+timeLabel(lastPacket):'Sin operaciones ni cotizaciones recibidas';
+  const lag=gotQuote?data.last_quote_lag_ms:data.last_lag_ms;
+  $('lag').textContent=Number.isFinite(lag)&&lag>=0?
+    'Bolsa → servidor: '+(lag/1000).toFixed(2)+' s (aprox.)':
+    'Bolsa → servidor: sin medición fiable';
+  const next=data.candles&&data.candles.length?data.candles[data.candles.length-1]:null;
+  const bars=seriesFor(data),bar=bars[bars.length-1];
+  const ageMs=Date.now()-lastFetchedAt;
+  $('visual-age').textContent='Pantalla: '+(lastFetchedAt?Math.round(ageMs/1000)+' s desde sincronización':'esperando primera sincronización');
+  const channelState=data.status==='conectado';
+  const healthy=channelState&&packetAge!==null&&packetAge<20;
+  $('dot').className='dot '+(channelState?'good':data.status==='error'?'bad':'');
+  $('connection').textContent=data.status==='error'?'IEX: error':data.status==='reconectando'?'IEX: reconectando…':
+    channelState?(healthy?'IEX: conectado':'IEX: conectado, sin mensajes recientes'):
+    data.status==='conectando'?'IEX: conectando…':(data.status||'Esperando IEX');
+  $('trade-state').textContent=channelState?(arrivedAge!==null&&arrivedAge<10?'Recibiendo operaciones':qAge!==null&&qAge<10?'Recibiendo cotizaciones':'Sin datos IEX recientes (no implica fallo del sistema)'):
+    (data.status||'Esperando conexion');
+  $('trade-count').textContent='Trades: '+(data.trade_count||0)+' · cotizaciones: '+(data.quote_count||0)+' · elegibles: '+(data.eligible_count||0);
+  if(tf==='5s' && bar){
+    const age=Math.max(0,Math.floor(Date.now()/1000-(Number(bar.time)+5)));
+    $('bar-quality').textContent='Velas 5 s IEX · '+(age===0?'vela reciente':'última vela de hace '+age+' s')+' · bid/ask es independiente';
+  }
+
+  $('error').textContent=data.error||data.history_error||'';
+  if(bar) {
+    const duration=tfSeconds();
+    const stillForming=bar.provisional && now/1000 < bar.time+duration && now/1000 >= bar.time;
+    const remainder=stillForming?Math.max(0,duration-(Math.floor(now/1000)-bar.time)):0;
+    $('progress').style.width=stillForming?Math.max(0,Math.min(100,(duration-remainder)/duration*100))+'%':'0%';
+    $('bar-status').textContent=bar.provisional?(stillForming?'EN FORMACIÓN':'ÚLTIMA VELA INDICATIVA'):'OFICIAL';
+    $('bar-start').textContent='Inicio: '+timeLabel(new Date(bar.time*1000).toISOString());
+    const variation=bar.open?100*(bar.close-bar.open)/bar.open:0;
+    const move=$('movement');move.className='v '+(variation>0?'up':variation<0?'down':'flat');
+    move.textContent=(variation>0?'▲ ':variation<0?'▼ ':'= ')+Math.abs(variation).toFixed(3)+'%';
+    $('movement-detail').textContent=(bar.provisional?'Estimación provisional':'Vela oficial')+' · no es predicción';
+  }else {
+    $('bar-status').textContent='—';$('bar-start').textContent='Sin velas';
+    $('movement').textContent='—';$('movement').className='v flat';
+    $('movement-detail').textContent='Sin vela para medir variación';
+    $('progress').style.width='0%';
+  }
+}
+
+async function fetchSnapshot() {
+  if(fetchBusy){fetchQueued=true;return;}
+  fetchBusy=true;
+  try {
+    const response=await fetch('/api/alpaca/live',{cache:'no-store'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const data=await response.json();
+    lastFetchedAt=Date.now();
+    if(data.last_received_at&&data.last_received_at!==lastRenderedTradeStamp) {
+      lastRenderedTradeStamp=data.last_received_at;
+      const ms=Date.now()-Date.parse(data.last_received_at);
+      $('paint-delay').textContent=ms>=0?'Servidor → pantalla: '+ms+' ms (aprox.)':'Reloj del PC no sincronizado';
+    }
+    lastPayload=data;
+    drawData(data);
+  }catch(e) {
+    $('delivery').textContent='Canal local: reintentando';
+    $('error').textContent='No se pudo leer la API local ('+String(e.message||'Error')+').';
+  }finally{
+    fetchBusy=false;
+    if(fetchQueued){fetchQueued=false;scheduleFetch();}
+  }
+}
+function scheduleFetch(){
+  if(fetchTimer!==null)return;
+  fetchTimer=setTimeout(()=>{fetchTimer=null;fetchSnapshot();},100);
+}
+// SSE notifica cambios; petición local corta para consultar el estado.
+// Si falla SSE, la UI utiliza una comprobación de respaldo cada 3 segundos.
+if(typeof EventSource!=='undefined') {
+  const source=new EventSource('/api/alpaca/events');
+  source.addEventListener('update',()=>{sseOk=true;$('delivery').textContent='Canal: streaming';scheduleFetch();});
+  source.onopen=()=>{sseOk=true;$('delivery').textContent='Canal: SSE conectado';};
+  source.onerror=()=>{sseOk=false;$('delivery').textContent='Canal: SSE reconectando; respaldo activo';};
+}else $('delivery').textContent='Canal: respaldo periódico';
+fetchSnapshot();
+paintDecisionClock();
+setInterval(()=>{
+  paintDecisionClock();
+  if(lastPayload)drawClock(lastPayload); // reloj activo aun sin trades, no inventar OHLC
+  else renderMarketClock();
+  if(Date.now()-lastFetchedAt>3000||!sseOk)scheduleFetch();
+},1000);
+function resizeChart(){chart.resize(chartEl.clientWidth,Math.max(160,chartEl.clientHeight-1));}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeChart).observe(chartEl);
+else window.addEventListener('resize',resizeChart);
+</script>
+</body>
+</html>

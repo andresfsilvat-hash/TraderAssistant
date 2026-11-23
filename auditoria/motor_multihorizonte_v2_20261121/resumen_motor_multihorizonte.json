@@ -1,0 +1,319 @@
+{
+  "rules_version": "experimental-causal-groups-v2",
+  "source": "C:\\Proyectos\\TraderAssistant\\auditoria\\historico_nvda_iex\\nvda_iex_1min_20261118_213505_280555.csv",
+  "source_sha256": "D2E79DAE5D3D77543725C12FE8B14631369DC7345637F4308BF8E726A35D82BB",
+  "feed": "Alpaca IEX 1m; no IQ Option",
+  "causality": "Cada evaluación usa filas con timestamp <= vela señal; entrada y salida solo miden el resultado después.",
+  "sessions_total": 63,
+  "split": {
+    "development_sessions": 42,
+    "development_first": "2026-08-21",
+    "development_last": "2026-10-20",
+    "retrospective_validation_sessions": 21,
+    "validation_first": "2026-10-21",
+    "validation_last": "2026-11-18"
+  },
+  "development": {
+    "60": {
+      "sessions": 42,
+      "available_sessions": 42,
+      "eligible_minutes": 14229,
+      "signals_non_overlapping": 871,
+      "abstentions_wait": 13358,
+      "skipped_overlap": 0,
+      "wins": 387,
+      "losses": 464,
+      "ties": 20,
+      "not_evaluable": 0,
+      "coverage_percent": 6.121,
+      "win_rate_percent": 44.432,
+      "always_up_percent_same_events": 48.45,
+      "always_down_percent_same_events": 49.254,
+      "last_candle_percent_same_events": 44.317,
+      "balanced_random_percent_same_events": 49.139,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          -8.96,
+          0.946
+        ],
+        "always_down": [
+          -9.659,
+          0.0
+        ],
+        "last_candle": [
+          -3.405,
+          3.457
+        ],
+        "balanced_random": [
+          -9.55,
+          0.322
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    },
+    "120": {
+      "sessions": 42,
+      "available_sessions": 42,
+      "eligible_minutes": 14187,
+      "signals_non_overlapping": 1171,
+      "abstentions_wait": 12667,
+      "skipped_overlap": 349,
+      "wins": 564,
+      "losses": 594,
+      "ties": 13,
+      "not_evaluable": 0,
+      "coverage_percent": 8.254,
+      "win_rate_percent": 48.164,
+      "always_up_percent_same_events": 49.189,
+      "always_down_percent_same_events": 49.701,
+      "last_candle_percent_same_events": 47.566,
+      "balanced_random_percent_same_events": 50.726,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          -4.581,
+          2.627
+        ],
+        "always_down": [
+          -5.566,
+          2.61
+        ],
+        "last_candle": [
+          -2.78,
+          3.979
+        ],
+        "balanced_random": [
+          -6.058,
+          0.706
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    },
+    "300": {
+      "sessions": 39,
+      "available_sessions": 42,
+      "eligible_minutes": 14061,
+      "signals_non_overlapping": 669,
+      "abstentions_wait": 12038,
+      "skipped_overlap": 1354,
+      "wins": 310,
+      "losses": 353,
+      "ties": 6,
+      "not_evaluable": 0,
+      "coverage_percent": 4.758,
+      "win_rate_percent": 46.338,
+      "always_up_percent_same_events": 51.121,
+      "always_down_percent_same_events": 47.982,
+      "last_candle_percent_same_events": 48.132,
+      "balanced_random_percent_same_events": 49.925,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          -11.371,
+          2.242
+        ],
+        "always_down": [
+          -7.031,
+          4.243
+        ],
+        "last_candle": [
+          -5.53,
+          2.031
+        ],
+        "balanced_random": [
+          -9.187,
+          1.928
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    },
+    "600": {
+      "sessions": 0,
+      "available_sessions": 42,
+      "eligible_minutes": 13851,
+      "signals_non_overlapping": 0,
+      "abstentions_wait": 13851,
+      "skipped_overlap": 0,
+      "wins": 0,
+      "losses": 0,
+      "ties": 0,
+      "not_evaluable": 0,
+      "coverage_percent": 0.0,
+      "win_rate_percent": null,
+      "always_up_percent_same_events": null,
+      "always_down_percent_same_events": null,
+      "last_candle_percent_same_events": null,
+      "balanced_random_percent_same_events": null,
+      "paired_delta_ci95_points": {
+        "always_up": null,
+        "always_down": null,
+        "last_candle": null,
+        "balanced_random": null
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    }
+  },
+  "retrospective_validation": {
+    "60": {
+      "sessions": 21,
+      "available_sessions": 21,
+      "eligible_minutes": 7116,
+      "signals_non_overlapping": 406,
+      "abstentions_wait": 6710,
+      "skipped_overlap": 0,
+      "wins": 209,
+      "losses": 189,
+      "ties": 8,
+      "not_evaluable": 0,
+      "coverage_percent": 5.705,
+      "win_rate_percent": 51.478,
+      "always_up_percent_same_events": 45.32,
+      "always_down_percent_same_events": 52.709,
+      "last_candle_percent_same_events": 51.232,
+      "balanced_random_percent_same_events": 50.0,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          -1.62,
+          14.149
+        ],
+        "always_down": [
+          -5.542,
+          2.233
+        ],
+        "last_candle": [
+          -2.928,
+          3.778
+        ],
+        "balanced_random": [
+          -5.011,
+          8.511
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    },
+    "120": {
+      "sessions": 21,
+      "available_sessions": 21,
+      "eligible_minutes": 7095,
+      "signals_non_overlapping": 575,
+      "abstentions_wait": 6348,
+      "skipped_overlap": 172,
+      "wins": 302,
+      "losses": 267,
+      "ties": 6,
+      "not_evaluable": 0,
+      "coverage_percent": 8.104,
+      "win_rate_percent": 52.522,
+      "always_up_percent_same_events": 43.826,
+      "always_down_percent_same_events": 55.13,
+      "last_candle_percent_same_events": 51.13,
+      "balanced_random_percent_same_events": 51.13,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          1.008,
+          16.295
+        ],
+        "always_down": [
+          -6.425,
+          0.861
+        ],
+        "last_candle": [
+          -3.025,
+          5.894
+        ],
+        "balanced_random": [
+          -5.319,
+          7.692
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    },
+    "300": {
+      "sessions": 21,
+      "available_sessions": 21,
+      "eligible_minutes": 7032,
+      "signals_non_overlapping": 440,
+      "abstentions_wait": 5680,
+      "skipped_overlap": 912,
+      "wins": 236,
+      "losses": 200,
+      "ties": 4,
+      "not_evaluable": 0,
+      "coverage_percent": 6.257,
+      "win_rate_percent": 53.636,
+      "always_up_percent_same_events": 46.136,
+      "always_down_percent_same_events": 52.955,
+      "last_candle_percent_same_events": 50.909,
+      "balanced_random_percent_same_events": 45.909,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          -3.765,
+          18.764
+        ],
+        "always_down": [
+          -2.174,
+          4.515
+        ],
+        "last_candle": [
+          -3.62,
+          9.091
+        ],
+        "balanced_random": [
+          0.0,
+          15.163
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    },
+    "600": {
+      "sessions": 13,
+      "available_sessions": 21,
+      "eligible_minutes": 6927,
+      "signals_non_overlapping": 185,
+      "abstentions_wait": 6049,
+      "skipped_overlap": 693,
+      "wins": 94,
+      "losses": 90,
+      "ties": 1,
+      "not_evaluable": 0,
+      "coverage_percent": 2.671,
+      "win_rate_percent": 50.811,
+      "always_up_percent_same_events": 48.649,
+      "always_down_percent_same_events": 50.811,
+      "last_candle_percent_same_events": 44.324,
+      "balanced_random_percent_same_events": 49.189,
+      "paired_delta_ci95_points": {
+        "always_up": [
+          -14.667,
+          16.489
+        ],
+        "always_down": [
+          0.0,
+          0.0
+        ],
+        "last_candle": [
+          -0.613,
+          13.115
+        ],
+        "balanced_random": [
+          -8.377,
+          11.905
+        ]
+      },
+      "evidence_status": "SIN_VENTAJA_DEMOSTRADA",
+      "latency": "NO_MEDIBLE_EN_CSV_1M"
+    }
+  },
+  "automatic_best_horizon": null,
+  "limitations": [
+    "La validación posterior es retrospectiva y no ciega.",
+    "Aperturas de velas IEX 1m son proxies, no precios NVIDIA Blitz.",
+    "Latencia, payout, spread y liquidación IQ Option no están disponibles.",
+    "Se requieren sesiones prospectivas nuevas antes de afirmar ventaja."
+  ]
+}

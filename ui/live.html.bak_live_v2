@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TraderAssistant | NVIDIA en vivo (Alpaca IEX)</title>
+<style>
+:root {color-scheme:dark;font-family:'Segoe UI',Arial,sans-serif;background:#0f1117;color:#e2e8f0}
+*{box-sizing:border-box}body{margin:0}
+header{padding:13px 22px;background:#1a1d27;border-bottom:1px solid #303648;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+a{color:#a0bfff;text-decoration:none}h1{font-size:19px;margin:0}small{color:#94a3b8}
+main{padding:18px 22px}.bar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+.price{font-size:32px;font-weight:750;font-variant-numeric:tabular-nums}.dim{color:#94a3b8}.status{border:1px solid #475569;padding:7px 10px;border-radius:7px;font-size:13px}
+#chart{width:100%;height:67vh;min-height:360px;border:1px solid #2d3144;border-radius:8px;overflow:hidden;background:#0f1117}
+.info{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:#a1aab9}
+.note{margin:14px 0;color:#a8b4c7;font-size:13px;line-height:1.6}
+.error{color:#fca5a5;font-size:13px;margin:10px 0;min-height:18px}
+</style>
+<script src="/vendor/lightweight-charts.js"></script>
+</head>
+<body>
+<header>
+  <a href="/">← Volver al analizador</a>
+  <h1>NVDA · Cotizaciones Alpaca IEX</h1>
+  <span class="dim">Gráfico de 1 minuto · Actualización visual cada 1 segundo</span>
+</header>
+<main>
+ <div class="bar">
+   <div><div class="dim">Última operación reportada por IEX</div><div id="price" class="price">—</div></div>
+   <div><div id="status" class="status">Conectando…</div><small id="updated">Sin operaciones recibidas</small></div>
+ </div>
+ <div id="chart"></div>
+ <div class="info"><span id="last-bar">Última vela: —</span><span id="points">0 velas</span><span id="feed">Fuente: Alpaca · IEX</span></div>
+ <div id="error" class="error"></div>
+ <p class="note">Los precios provienen exclusivamente de IEX, no del mercado estadounidense consolidado. Las velas pueden estar en formación y cambiar antes del cierre. Fuera de horario bursátil puede haber conexión sin operaciones nuevas. Esta vista es solo de lectura: no envía órdenes.</p>
+</main>
+<script>
+'use strict';
+const fmt = new Intl.DateTimeFormat('es-EC', { timeZone:'America/Guayaquil', day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false });
+const cont = document.getElementById('chart');
+const chart = LightweightCharts.createChart(cont, {
+ width:cont.clientWidth,height:cont.clientHeight,
+ layout:{background:{color:'#0f1117'},textColor:'#94a3b8'},
+ grid:{vertLines:{color:'#252938'},horzLines:{color:'#252938'}},
+ rightPriceScale:{borderColor:'#475569'},
+ timeScale:{borderColor:'#475569',timeVisible:true,secondsVisible:false}
+});
+const series = chart.addCandlestickSeries({upColor:'#22c55e',downColor:'#ef4444',borderUpColor:'#22c55e',borderDownColor:'#ef4444',wickUpColor:'#22c55e',wickDownColor:'#ef4444'});
+let lastSignature = '', gotFirstBars = false;
+function utcLabel(iso) { if(!iso) return '—'; const d = new Date(iso); return Number.isNaN(d.getTime())?'—':fmt.format(d)+' (Ecuador)'; }
+function barLabel(unix) {return unix?utcLabel(new Date(unix * 1000).toISOString()):'—';}
+async function refresh() {
+ try {
+  const response = await fetch('/api/alpaca/live', {cache:'no-store'});
+  if (!response.ok) throw new Error('Respuesta HTTP '+response.status);
+  const d = await response.json();
+  const candles = d.candles || [];
+  const end = candles[candles.length-1];
+  const sig = candles.length+'|'+(end?`${end.time}|${end.open}|${end.high}|${end.low}|${end.close}|${end.volume}`:'');
+  if (sig !== lastSignature) {
+   lastSignature = sig;
+   if (candles.length) {
+    series.setData(candles);
+    if (!gotFirstBars) {chart.timeScale().fitContent();gotFirstBars = true;}
+   }
+  }
+  const trade = d.last_trade;
+  document.getElementById('price').textContent = trade ? '$'+Number(trade.price).toFixed(3) : '—';
+  document.getElementById('updated').textContent = trade ? 'Operación: '+utcLabel(trade.timestamp) : 'Todavía no se recibieron operaciones en vivo';
+  document.getElementById('last-bar').textContent = 'Inicio de última vela: '+barLabel(end && end.time);
+  document.getElementById('points').textContent = candles.length+' velas IEX';
+  const age = trade ? Math.floor((Date.now()-Date.parse(trade.timestamp))/1000) : null;
+  const mode = d.status === 'conectado' ? (trade && age !== null && age <= 30 ? 'Conectado · datos recientes' : 'Conectado · sin operaciones recientes') : d.status;
+  document.getElementById('status').textContent = mode;
+  document.getElementById('error').textContent = d.error || d.history_error || '';
+ } catch (err) {
+  document.getElementById('status').textContent = 'Error de comunicación local';
+  document.getElementById('error').textContent = err.message;
+ }
+}
+refresh(); setInterval(refresh, 1000);
+new ResizeObserver(()=>chart.resize(cont.clientWidth, cont.clientHeight)).observe(cont);
+</script>
+</body>
+</html>

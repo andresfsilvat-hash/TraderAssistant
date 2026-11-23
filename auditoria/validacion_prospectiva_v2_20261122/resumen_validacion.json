@@ -1,0 +1,10 @@
+{
+  "generated_at_utc": "2026-11-22T11:43:23.468579+00:00",
+  "source": "prospective Alpaca IEX simulations; no real orders",
+  "statistics": {},
+  "automatic_best_horizon": null,
+  "validation_notice": "No horizon is approved without new sessions and comparable IQ Option outcomes.",
+  "iq_comparison": {
+    "status": "PENDIENTE_ARCHIVO_IQ_OPTION"
+  }
+}

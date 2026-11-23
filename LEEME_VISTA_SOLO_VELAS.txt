@@ -1,0 +1,25 @@
+TraderAssistant — Vista Solo Velas (parche de interfaz)
+
+Qué hace:
+- Añade dos botones: "Línea: OFF/ON" y "Volumen: OFF/ON".
+- Ambos están desactivados inicialmente, por lo que solo se ven las velas.
+- Los controles son independientes.
+- Si el navegador admite localStorage, recuerda la elección.
+- No quita datos, ni cambia los precios, ni modifica backend o Alpaca.
+
+Instalación (PowerShell, TraderAssistant cerrado):
+1. cd C:\Proyectos\TraderAssistant
+2. Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\TraderAssistant_Solo_Velas.zip" -DestinationPath "C:\Proyectos\TraderAssistant" -Force
+3. .\venv\Scripts\python.exe .\instalar_vista_solo_velas.py
+4. .\venv\Scripts\python.exe .\main.py
+
+Seguridad:
+- Se modifica únicamente ui/live.html.
+- Se crea un respaldo ui/live.html.bak_solo_velas_FECHA.
+- Si el código cambió y no se reconocen sus puntos de inserción, no modifica nada.
+- No lee credenciales ni instala dependencias.
+
+Restauración:
+- Cierra la aplicación.
+- Encuentra el archivo ui/live.html.bak_solo_velas_FECHA generado.
+- Copia su contenido encima de ui/live.html para deshacer el cambio.

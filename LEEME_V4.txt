@@ -1,0 +1,83 @@
+TRADERASSISTANT — REALTIME v4.0.0 (ACTUALIZACION CONSOLIDADA)
+=============================================================
+
+OBJETIVO
+-------
+Corregir el flujo Alpaca IEX en el MISMO proyecto original. No es un programa nuevo.
+La actualización conserva: app.py, main.py, Yahoo Finance, indicador/scorer,
+config.json, entorno venv y el TXT local de claves.
+
+NO ES NECESARIO INSTALAR v3 ANTES. El instalador acepta v1, v2 o v3 sin cambios.
+
+ARCHIVOS AFECTADOS (SOLO DOS)
+-----------------------------
+  alpaca_live.py       -> motor Alpaca en tiempo real
+  ui/live.html         -> grafico /live
+
+Al instalar, se generan COPIAS DE SEGURIDAD (bak_pre_v4_FECHA) de ambos archivos.
+El instalador no lee credenciales, no accede a Internet y no inicia el programa.
+Si detecta cambios desconocidos, se detiene SIN REEMPLAZAR NINGUN ARCHIVO.
+
+PASOS EN WINDOWS 11 — POWERSHELL
+--------------------------------
+1) CIERRA TraderAssistant y pulsa Ctrl+C en su consola de PowerShell.
+2) Guarda TraderAssistant_Realtime_v4.zip en tu carpeta Descargas.
+3) Ejecuta:
+
+   cd C:\Proyectos\TraderAssistant
+   Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\TraderAssistant_Realtime_v4.zip" -DestinationPath "C:\Proyectos\TraderAssistant" -Force
+   .\venv\Scripts\python.exe .\instalar_realtime_v4.py
+   .\venv\Scripts\python.exe -m py_compile .\alpaca_live.py .\app.py .\main.py
+   .\venv\Scripts\python.exe .\main.py
+
+4) La ventana principal debe abrir http://127.0.0.1:5174/live
+5) Verifica que se vea v4.0.0 y el estado IEX.
+6) La pagina no requiere presionar Run Fresh Scan.
+
+¿QUE CORRIGE?
+-------------
+- Conecta el WebSocket antes de esperar la descarga del historial.
+- Recupera historial de forma separada y hace backfill al reconectar.
+- Usa avisos SSE del servidor y un respaldo de consultas si falla SSE.
+- Distingue 1m OFICIALES Alpaca de la vela en formacion INDICATIVA.
+- Evita que operaciones de lotes impares (I) distorsionen OHLC provisional.
+- Recibe barras actualizadas 'u' para corregir velas anteriores.
+- Redibuja la serie cuando recibe correcciones o historial retroactivo.
+- Expone contador trades recibidos/elegibles/excluidos, horarios ECUADOR,
+  demora estimada proveedor->servidor y servidor->pantalla.
+- No inventa cotizaciones ni velas sin operaciones.
+- Incluye 5 s (indicativas desde la conexion), 1 min y 5 min.
+
+LIMITACIONES HONESTAS
+--------------------
+- Alpaca Basic IEX es una bolsa, no el mercado consolidado SIP. El flujo
+  puede tener menos operaciones que otras plataformas.
+- Las velas de 5 segundos y la vela del minuto en curso son INDICATIVAS;
+  no equivalen a un agregado oficial de Alpaca.
+- La latencia proveedor->servidor depende del proveedor y del reloj del PC;
+  la latencia servidor->pantalla mostrada es APROXIMADA.
+- Sin mercado o sin nuevos trades IEX, la vela queda inmovil correctamente.
+- Las señales LONG/SHORT del analizador histórico SIGUEN sin estar conectadas
+  a Alpaca. Este parche se enfoca SOLO en estabilidad del tiempo real.
+- No se envian ordenes bursatiles ni se crean accesos externos.
+- La conexion real con tu cuenta requiere probar en TU equipo; aqui se
+  validaron codigo y simulaciones, sin tus claves ni ejecucion en vivo.
+
+PRUEBAS (OPCIONAL)
+------------------
+   .\venv\Scripts\python.exe .\pruebas\probar_v4.py
+
+RESTAURACION (SI FUERA NECESARIO)
+--------------------------------
+1) Cierra la aplicacion y detiene PowerShell con Ctrl+C.
+2) Ejecuta:
+   cd C:\Proyectos\TraderAssistant
+   .\venv\Scripts\python.exe .\restaurar_realtime_v4.py
+
+El restaurador comprueba que la v4 no fue alterada desde la instalacion.
+Si detecta cambios posteriores, se detiene para no perderlos.
+
+NO SUBIR CREDENCIALES
+---------------------
+El archivo C:\Users\User\Documents\Alpaca_key.txt NO se incluye en el ZIP.
+No compartas API Key ni Secret Key en capturas, foros ni Google Drive.

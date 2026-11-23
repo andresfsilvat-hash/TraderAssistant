@@ -1,0 +1,26 @@
+TraderAssistant - Ajuste de pantalla (vista responsive)
+===================================================
+SOLO modifica ui/live.html. Mantiene intactas las cotizaciones, el motor
+Alpaca, las velas, el selector de activos, los indicadores y los controles
+Linéa / Volumen si ya existen.
+
+Instalacion (PowerShell, con TraderAssistant CERRADO):
+
+cd C:\Proyectos\TraderAssistant
+Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\TraderAssistant_Ajuste_Pantalla.zip" -DestinationPath "C:\Proyectos\TraderAssistant" -Force
+.\venv\Scripts\python.exe .\instalar_ajuste_pantalla.py --verificar
+.\venv\Scripts\python.exe .\instalar_ajuste_pantalla.py
+.\venv\Scripts\python.exe .\main.py
+
+Comportamiento:
+- Al maximizar en un escritorio con suficiente espacio, paneles superiores
+  mantienen altura compacta y el grafico ocupa el espacio restante.
+- En ventanas pequenas (<1101 CSS px de ancho o <650 CSS px de alto),
+  mantiene el desplazamiento normal en lugar de ocultar contenido.
+- Los botones de linea y volumen y los paneles no se quitan.
+- Si un archivo fue modificado de manera incompatible, el instalador aborta
+  sin realizar cambios. Si ya se instalo, no duplica el parche.
+- El instalador imprime la ruta EXACTA del respaldo y como restaurar.
+
+NOTA: no incorpora aun el panel de decision SUBE/BAJA; solo corrige el ajuste
+al maximizar. No realiza operaciones bursatiles ni usa claves de Alpaca.
