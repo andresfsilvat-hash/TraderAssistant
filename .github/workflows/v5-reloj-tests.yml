@@ -8,6 +8,9 @@ on:
       - 'engine/**'
       - 'pruebas/test_reloj_entrada_v5.py'
       - 'pruebas/test_validacion_temporal_v5.py'
+      - 'pruebas/test_estado_v5.py'
+      - 'v5_diagnostics.py'
+      - 'app.py'
       - '.github/workflows/v5-reloj-tests.yml'
 
 jobs:
@@ -19,6 +22,6 @@ jobs:
         with:
           python-version: '3.11'
       - name: Validar sintaxis
-        run: python -m compileall -q engine pruebas/test_reloj_entrada_v5.py pruebas/test_validacion_temporal_v5.py
+        run: python -m compileall -q engine v5_diagnostics.py app.py pruebas/test_reloj_entrada_v5.py pruebas/test_validacion_temporal_v5.py pruebas/test_estado_v5.py
       - name: Ejecutar pruebas unitarias V5
-        run: python -m unittest discover -s pruebas -p 'test_*_v5.py' -v
+        run: python -m unittest discover -s pruebas -p 'test_*v5.py' -v
