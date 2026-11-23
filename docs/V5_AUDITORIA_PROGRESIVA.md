@@ -55,6 +55,23 @@ Columnas CSV: `detectada_utc,entrada_utc,vencimiento_utc,duracion_segundos,direc
 
 **Bloqueador explícito:** siguen faltando muestras prospectivas verificables de NVIDIA Blitz, su calendario/reglas de expiración y la medición de latencia de interacción del usuario. No es responsable prometer una hora exacta de entrada ni una tasa de acierto mientras falte esa evidencia. La ejecución del módulo de diagnóstico sí es posible, pero el objetivo operativo aún no está validado.
 
+## Ronda 5 — Horizonte exploratorio de 30 segundos y regresión completa
+
+- `engine/micro_30s.py`: prueba causal de impulso y volumen en 24 velas indicativas consecutivas de 5 segundos; rechaza huecos, barras en formación, cache de días previos, retrasos y precios/volúmenes inválidos.
+- `pruebas/test_micro_30s_v5.py`: casos positivos y negativos de calidad de datos. **Es observación experimental, no predicción calibrada ni señal de entrada.**
+- Regresión GitHub Actions del commit `856413f97e212a2ef82fc4f0863ba69ffbdac2b5`: **161 pruebas aprobadas** en Ubuntu, además de los jobs específicos V5 en Ubuntu y Windows. Enlace: https://github.com/andresfsilvat-hash/TraderAssistant/actions/runs/45259872318
+- Se detectó y corrigió en la rama de desarrollo un test de hash `main.py` con firma anterior a la versión original publicada. El blob de `main.py` (`55ad1bfa2c3a5627e792092653322fb7c30632e2`) coincide exactamente entre `main` y `v5-development`; no se modificó el archivo principal V4.
+
+## Criterios pendientes antes de considerar listo el objetivo operativo
+
+1. Datos temporales de NVIDIA Blitz en IQ Option, con vencimientos exactos, payouts y fuentes verificadas.
+2. Validación *prospectiva* de anticipación: medir qué porcentaje de eventos permite preparar 10 s antes, sin sesgo temporal y sin alterar falsamente los resultados.
+3. Métricas predictivas separadas por patrón, dirección y horizonte, incluyendo tasa de abstención y costos; prueba fuera de muestra y monitoreo de cambios de régimen.
+4. Motor de planificación temporal conectado únicamente a modelos calibrados, con bloqueo por latencia y revocación de señales obsoletas; verificación de ejecución simulada end-to-end.
+5. Pruebas locales del proyecto completo en Windows con Alpaca IEX conectado, medición de red y comparación independiente con los precios/vencimientos del instrumento de destino.
+
+La API `/api/v5/estado` funciona como diagnóstico; **permanece en ESPERAR por diseño** hasta superar los criterios. No se han habilitado órdenes automáticas ni cambios visuales.
+
 ## Hallazgos de la auditoría del proyecto actual
 
 1. `decision_engine_experimental.py` admite horizontes 60/120/300/600, pero todavía no 30 segundos; su decisión operativa permanece **ESPERAR**.
