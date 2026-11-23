@@ -33,6 +33,10 @@ register_live_analysis(app)
 from simulation_results import register_simulation_results
 register_simulation_results(app)
 
+# V5: estado diagnóstico de solo lectura, sin órdenes ni cambios de UI.
+from v5_diagnostics import register_v5_diagnostics
+register_v5_diagnostics(app)
+
 
 import logging
 logging.basicConfig(level=logging.INFO)
