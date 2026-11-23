@@ -1,0 +1,23 @@
+name: V5 - Pruebas del reloj de entrada
+
+on:
+  push:
+    branches: [v5-development]
+  pull_request:
+    paths:
+      - 'engine/**'
+      - 'pruebas/test_reloj_entrada_v5.py'
+      - '.github/workflows/v5-reloj-tests.yml'
+
+jobs:
+  reloj:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validar sintaxis
+        run: python -m compileall -q engine/reloj_entrada.py pruebas/test_reloj_entrada_v5.py
+      - name: Ejecutar pruebas unitarias V5
+        run: python -m unittest discover -s pruebas -p 'test_reloj_entrada_v5.py' -v
