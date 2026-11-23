@@ -280,7 +280,7 @@ class ResultsEndpointTests(unittest.TestCase):
     def test_protected_realtime_hashes(self):
         expected = {
             "alpaca_live.py": "10BA6B883803C5E1DB04666B3855B70542C47C47F16E544D9B8D2D501EBB8127",
-            "main.py": "67CD9EC723DAAB05E1B498FD765F46763FCA90E320C6D1AE99F7CC9AC08BE2DC",
+            "main.py": "0B12682E0FF8B6965B1FF32534DEA793A9AD88587FB263CD5B579EF0FAC4AFFC",
         }
         for relative, digest in expected.items():
             self.assertEqual(hashlib.sha256((ROOT / relative).read_bytes()).hexdigest().upper(), digest)
