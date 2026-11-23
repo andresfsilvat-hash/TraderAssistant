@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>TraderAssistant · Cripto 24/7 · Alpaca</title>
+<style>
+:root{color-scheme:dark;--bg:#10151f;--panel:#171e2b;--border:#2c3a50;--fg:#e6efff;--muted:#a0b0c9;--ok:#44d49b;--warn:#ffc477}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px system-ui,Segoe UI,Arial,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;padding:19px 24px;border-bottom:1px solid var(--border);background:var(--panel)}
+h1{font-size:20px;margin:0}a{color:#89c4ff;text-decoration:none}a:hover{text-decoration:underline}
+small,.muted{color:var(--muted)}main{padding:18px;max-width:1450px;margin:auto}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:17px;margin-bottom:12px}
+.row{display:flex;align-items:center;flex-wrap:wrap;gap:13px}
+select{background:#111a29;color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:11px;font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.card{min-height:118px}.label{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.value{font-size:23px;font-weight:700;margin:14px 0 7px;font-variant-numeric:tabular-nums;word-break:break-word}
+.note{font-size:12px;line-height:1.5;color:var(--muted)}#chart{width:100%;height:420px}
+.status{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);padding:10px;border-radius:22px}
+.dot{width:8px;height:8px;border-radius:100%;background:var(--warn)}.dot.on{background:var(--ok)}
+.notice{line-height:1.6;color:var(--warn);font-size:12px}#error{word-break:break-word;color:#ffabb1}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}#chart{height:340px}}
+@media(max-width:480px){.cards{grid-template-columns:1fr}main{padding:10px}}
+</style>
+<script src="/vendor/lightweight-charts.js"></script>
+</head>
+<body>
+<header>
+<div><h1>TRADERASSISTANT · CRIPTO 24/7</h1><small>Fuente: Alpaca Crypto US · independiente de acciones IEX · solo observación</small></div>
+<nav><a href="/live">Volver a acciones REALTIME</a></nav>
+</header>
+<main>
+<div class="panel row">
+<label for="pair">Par de criptomonedas:</label>
+<select id="pair"><option value="BTC/USD">Bitcoin · BTC/USD</option></select>
+<div class="status"><span class="dot" id="dot"></span><span id="status">Conectando…</span></div>
+<div class="status"><strong>Horario: 24 horas / 7 días</strong></div>
+</div>
+<div class="cards">
+<div class="panel card"><div class="label">Última operación</div><div class="value" id="price">—</div><div class="note" id="trade-time">No hay operaciones confirmadas</div></div>
+<div class="panel card"><div class="label">Compra / Venta</div><div class="value" id="spread">—</div><div class="note" id="quote-time">Sin cotización recibida</div></div>
+<div class="panel card"><div class="label">Última vela oficial (1m)</div><div class="value" id="bar-price">—</div><div class="note" id="bar-time">Esperando histórico</div></div>
+<div class="panel card"><div class="label">Recepción de datos</div><div class="value" id="freshness">—</div><div class="note" id="counts">Sin mensajes todavía</div></div>
+</div>
+<div class="panel">
+<div class="row" style="justify-content:space-between"><strong id="chart-title">BTC/USD · velas oficiales de 1 minuto</strong><small>Gráfico de precio de referencia Alpaca · no IQ Option</small></div>
+<div id="chart"></div>
+<div class="note" id="chart-note">Solicitando historial autenticado a Alpaca.</div>
+</div>
+<div class="panel notice">**AVISO:** Cripto opera 24/7, pero pueden existir pausas, ausencia de negocios o demoras de proveedor. La etiqueta «conectado» solamente indica suscripción WebSocket; el dato se considera actual solo cuando su marca de tiempo lo confirma. Las velas cripto de Alpaca pueden incluir puntos medios de cotizaciones incluso con volumen cero. Esta vista NO genera señales SUBE/BAJA validadas, NO abre órdenes y NO representa precios ni vencimientos de IQ Option.</div>
+<div class="note" id="error"></div>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const fmt=new Intl.DateTimeFormat('es-EC',{timeZone:'America/Guayaquil',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const when=stamp=>{const x=new Date(stamp);return Number.isFinite(x.getTime())?fmt.format(x)+' EC':'—'};
+const money=value=>Number.isFinite(Number(value))?Number(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:6}):'—';
+let active='BTC/USD', signature='', busy=false, requestId=0;
+const chart=LightweightCharts.createChart($('chart'),{
+ width:$('chart').clientWidth,height:$('chart').clientHeight,
+ layout:{background:{color:'#171e2b'},textColor:'#a7b9d0'},
+ grid:{vertLines:{color:'#263449'},horzLines:{color:'#263449'}},
+ timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#3d516a'},
+ rightPriceScale:{borderColor:'#3d516a'}
+});
+const candle=chart.addCandlestickSeries({upColor:'#29c68c',downColor:'#e85b6b',
+ borderUpColor:'#29c68c',borderDownColor:'#e85b6b',
+ wickUpColor:'#29c68c',wickDownColor:'#e85b6b'});
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>chart.resize($('chart').clientWidth,$('chart').clientHeight)).observe($('chart'));
+function catalog(data){
+ const sel=$('pair');
+ const entries=Object.entries(data.available_symbols||{});
+ if(!entries.length)return;
+ if(sel.options.length===entries.length)return;
+ const chosen=active;
+ sel.replaceChildren();
+ for(const [symbol,name] of entries){const o=document.createElement('option');o.value=symbol;o.textContent=name+' · '+symbol;sel.appendChild(o)}
+ sel.value=chosen;
+}
+function render(data){
+ if(data.symbol!==active)return;
+ catalog(data);
+ const ok=data.status==='conectado';
+ $('dot').className='dot'+(ok?' on':'');
+ $('status').textContent=(ok?'WebSocket suscrito':data.status||'sin conexión')+' · '+data.symbol;
+ $('price').textContent=data.last_trade?'$'+money(data.last_trade.price):'—';
+ $('trade-time').textContent=data.last_trade?'Última operación: '+when(data.last_trade.timestamp):'Sin operaciones recibidas';
+ $('spread').textContent=data.last_quote?'$'+money(data.last_quote.bid)+' / $'+money(data.last_quote.ask):'—';
+ $('quote-time').textContent=data.last_quote?'Cotización: '+when(data.last_quote.timestamp):'No hay bid/ask';
+ const bars=Array.isArray(data.candles)?data.candles:[];
+ const last=bars.length?bars[bars.length-1]:null;
+ $('bar-price').textContent=last?'$'+money(last.close):'—';
+ $('bar-time').textContent=last?'Vela: '+when(last.time*1000)+' · incluye posible precio medio de cotizaciones':'Esperando velas';
+ const receipt=data.last_feed_message_at?Date.parse(data.last_feed_message_at):NaN;
+ const ago=Number.isFinite(receipt)?Math.max(0,Math.floor((Date.now()-receipt)/1000)):null;
+ $('freshness').textContent=ago===null?'Sin dato':ago+' s';
+ $('counts').textContent='Operaciones '+(data.trade_count||0)+' · Cotizaciones '+(data.quote_count||0);
+ $('chart-title').textContent=data.symbol+' · velas 1m';
+ $('chart-note').textContent=bars.length+' velas disponibles · '+(data.history_source||'sin historial')+' · sin datos inventados';
+ $('error').textContent=[data.error,data.history_error].filter(Boolean).join(' · ');
+ const next=bars.filter(b=>Number.isFinite(Number(b.time))&&Number(b.close)>0)
+    .map(b=>({time:Number(b.time),open:Number(b.open),high:Number(b.high),low:Number(b.low),close:Number(b.close)}));
+ const sig=data.symbol+':'+data.series_revision+':'+next.length;
+ if(sig!==signature){candle.setData(next);if(!signature)chart.timeScale().fitContent();signature=sig}
+}
+async function update(){
+ if(busy)return;
+ busy=true;const version=++requestId;
+ try{
+  const response=await fetch('/api/crypto/live',{cache:'no-store'});
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const data=await response.json();
+  if(version===requestId)render(data);
+ }catch(e){$('status').textContent='Error al consultar feed cripto';$('dot').className='dot';$('error').textContent=String(e.message||e)}
+ finally{busy=false}
+}
+$('pair').addEventListener('change',async ev=>{
+ const symbol=ev.target.value,select=$('pair');
+ select.disabled=true;
+ try{
+  const r=await fetch('/api/crypto/symbol',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({symbol})});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  active=symbol;signature='';candle.setData([]);$('error').textContent='';
+  await update();
+ }catch(e){select.value=active;$('error').textContent='No se pudo cambiar de par: '+String(e.message||e)}
+ finally{select.disabled=false}
+});
+update();
+setInterval(update,2500);
+</script>
+</body>
+</html>
