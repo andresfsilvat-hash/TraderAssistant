@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from engine.estado_v5 import construir_estado_v5
+from engine.planificacion_experimental import simular_reloj_de_hipotesis
 
 
 def register_v5_diagnostics(app):
@@ -12,7 +13,10 @@ def register_v5_diagnostics(app):
         from alpaca_live import _feed
         market = _feed.snapshot()
         analysis = app.extensions["live_analysis"].snapshot()
-        value = construir_estado_v5(market, analysis, ahora_utc=datetime.now(timezone.utc))
+        now = datetime.now(timezone.utc)
+        value = construir_estado_v5(market, analysis, ahora_utc=now)
+        value["reloj_experimental"] = simular_reloj_de_hipotesis(
+            analysis, market, ahora_utc=now)
         response = jsonify(value)
         response.headers["Cache-Control"] = "no-store"
         return response
