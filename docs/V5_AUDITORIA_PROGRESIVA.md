@@ -72,6 +72,14 @@ Columnas CSV: `detectada_utc,entrada_utc,vencimiento_utc,duracion_segundos,direc
 
 La API `/api/v5/estado` funciona como diagnóstico; **permanece en ESPERAR por diseño** hasta superar los criterios. No se han habilitado órdenes automáticas ni cambios visuales.
 
+## Ronda 6 — Preparación y cuenta regresiva en simulación
+
+- `engine/planificacion_experimental.py` crea una **hora hipotética de entrada estable** a partir del timestamp del análisis experimental existente, no a partir de la hora de cada solicitud HTTP; evita desplazar el contador con cada actualización.
+- `pruebas/test_planificacion_v5.py` verifica la transición PREPARARSE → CUENTA_REGRESIVA 10..1 → ENTRAR en simulación y la cancelación por falta de datos recientes.
+- `/api/v5/estado` incluye un objeto independiente `reloj_experimental` que muestra duración, instante hipotético y contador. La respuesta principal sigue en ESPERAR; `operativa_autorizada=false`. No conecta con órdenes ni precios de liquidación de IQ Option.
+- Horizonte 30s: análisis exploratorio de 5s separado, sin planificador habilitado hasta calibración.
+- La hora hipotética usa una frontera de minuto posterior al análisis para pruebas temporales; **no existe evidencia de que sea el mejor momento para operar**.
+
 ## Hallazgos de la auditoría del proyecto actual
 
 1. `decision_engine_experimental.py` admite horizontes 60/120/300/600, pero todavía no 30 segundos; su decisión operativa permanece **ESPERAR**.
