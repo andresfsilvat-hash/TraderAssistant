@@ -23,6 +23,10 @@ app = Flask(__name__, static_folder="ui", static_url_path="")
 from alpaca_live import register_live
 register_live(app)
 
+# V5: lectura cripto 24/7 separada de IEX; solo comienza al abrir /crypto.
+from crypto_live import register_crypto_live
+register_crypto_live(app)
+
 # Read-only technical observation over closed official Alpaca candles.
 # Calculations run outside Flask/WebSocket and this route only serves cache.
 from analysis_live import register_live_analysis
