@@ -44,6 +44,8 @@ class ApiV5Tests(unittest.TestCase):
         self.assertEqual(info["estado"], "ESPERAR")
         self.assertFalse(info["operativa_autorizada"])
         self.assertIsNone(info["entrada_utc"])
+        self.assertIn("reloj_experimental", info)
+        self.assertFalse(info["reloj_experimental"]["operativa_autorizada"])
         self.assertEqual(info["hipotesis_experimentales"][0]["direccion_experimental"], "SUBE")
 
     def test_no_acepta_post(self):
