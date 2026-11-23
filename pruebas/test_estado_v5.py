@@ -67,6 +67,26 @@ class EstadoV5Tests(unittest.TestCase):
         x = construir_estado_v5(m, analysis(), ahora_utc=T)
         self.assertIsNone(x["retardo_ultimo_trade_ms"])
 
+    def test_explicacion_por_horizonte_sin_forzar_operacion(self):
+        a = analysis()
+        a["experimental_decision"]["evaluaciones"]["60"] = {
+            "direccion": "ESPERAR", "justificacion": "Falta confirmación",
+            "faltante": ["patrón"], "evidencia_contra": []}
+        r = construir_estado_v5(market(), a, ahora_utc=T)
+        self.assertEqual(r["diagnostico_por_duracion"]["60"]["faltantes"], ["patrón"])
+        self.assertEqual(r["diagnostico_por_duracion"]["30"]["justificacion"], "Horizonte no evaluado")
+        self.assertFalse(r["operativa_autorizada"])
+
+    def test_alerta_escala_historica(self):
+        a = analysis()
+        a["context"] = {"1d": {
+            "status": "insufficient", "quality_flag": "PRICE_SCALE_MISMATCH",
+            "reason": "Precio incompatible", "desviacion_frente_ultimo_precio_pct": 31.0}}
+        r = construir_estado_v5(market(), a, ahora_utc=T)
+        self.assertEqual(r["alertas_calidad"][0]["codigo"], "PRICE_SCALE_MISMATCH")
+        self.assertIn("histórico diario", " ".join(r["motivos_espera"]))
+        self.assertFalse(r["operativa_autorizada"])
+
     def test_utc_required(self):
         with self.assertRaises(ValueError):
             construir_estado_v5(market(), analysis(), ahora_utc=datetime(2026, 11, 23))
