@@ -7,6 +7,9 @@ on:
     paths:
       - 'engine/**'
       - 'multitimeframe_context.py'
+      - 'alpaca_live.py'
+      - 'ui/live.html'
+      - 'pruebas/test_catalogo_multiactivo_v5.py'
       - 'pruebas/test_calidad_contexto_v5.py'
       - 'pruebas/test_planificacion_v5.py'
       - 'pruebas/test_reloj_entrada_v5.py'
