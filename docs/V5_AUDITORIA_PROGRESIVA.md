@@ -20,6 +20,14 @@ Comando de prueba desde la raíz:
 python -m unittest discover -s pruebas -p 'test_reloj_entrada_v5.py' -v
 ```
 
+## Ronda 2 — Validador temporal fuera de muestra (implementado)
+
+- `engine/validacion_temporal.py`: registros inmutables de entrada/vencimiento, dirección, precio, fuente y payout opcional.
+- `pruebas/test_validacion_temporal_v5.py`: 12 casos para separación temporal, duplicados, fechas inválidas, payout ausente, resultados, intervalos Wilson y filtros por fuente.
+- Separa entrenamiento (< corte) de pruebas (señal detectada >= corte); descarta eventos cruzados, evitando fuga temporal.
+- Los resultados **no** demuestran precisión predictiva. Sin observaciones autorizadas del instrumento IQ Option y sin validación prospectiva, el campo `operativa_autorizada` es siempre falso.
+- CI incluye todas las pruebas V5 mediante `python -m unittest discover -s pruebas -p \'test_*_v5.py\' -v`.
+
 ## Hallazgos de la auditoría del proyecto actual
 
 1. `decision_engine_experimental.py` admite horizontes 60/120/300/600, pero todavía no 30 segundos; su decisión operativa permanece **ESPERAR**.
@@ -31,7 +39,7 @@ python -m unittest discover -s pruebas -p 'test_reloj_entrada_v5.py' -v
 
 ## Siguientes rondas (pendientes, no validadas)
 
-- **Ronda 2:** pruebas comparativas histórica vs prospectiva con separación temporal, datos de calidad y tasa de abstención; soportar 30s solo con muestras suficientes de esa resolución.
+- **Ronda 2:** completar alimentación de la validación con observaciones reales y medir tasa de abstención; 30s solo con muestras suficientes de esa resolución.
 - **Ronda 3:** planificador de oportunidades futuras a partir de evidencia causal, entrada programada, vencimiento, controles de calidad y registro inmutable.
 - **Ronda 4:** integración aislada con módulos REALTIME y simulador actual; pruebas con mocks de reconexión/cancelación.
 - **Ronda 5:** sincronización con IQ Option usando datos autorizados de la plataforma, evaluación de payout/latencia y pruebas supervisadas de extremo a extremo.
