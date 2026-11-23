@@ -24,8 +24,36 @@ from websockets.sync.client import connect
 VERSION = "4.0.0"
 BUILD = "mercado-multiactivo-20261118"
 SYMBOL = "NVDA"  # Activo por defecto; no modifica configuracion de usuario
-SYMBOLS = {"NVDA": "NVIDIA", "SPY": "SPDR S&P 500 ETF", "QQQ": "Invesco Nasdaq-100 ETF",
-           "MSFT": "Microsoft", "AAPL": "Apple", "AMD": "AMD"}
+# Catálogo de consulta en el panel REALTIME, no suscripciones simultáneas:
+# LiveFeed sigue escuchando UN único símbolo activo por WebSocket.
+# Todos son acciones/ETF de EE. UU. y comparten horario de la bolsa.
+# No equivale a ampliar el horario IEX ni a habilitar predicciones IQ Option.
+SYMBOLS = {
+    "NVDA": "NVIDIA",
+    "SPY": "SPDR S&P 500 ETF",
+    "QQQ": "Invesco Nasdaq-100 ETF",
+    "MSFT": "Microsoft",
+    "AAPL": "Apple",
+    "AMD": "AMD",
+    "AMZN": "Amazon",
+    "GOOGL": "Alphabet",
+    "META": "Meta Platforms",
+    "TSLA": "Tesla",
+    "AVGO": "Broadcom",
+    "NFLX": "Netflix",
+    "INTC": "Intel",
+    "JPM": "JPMorgan Chase",
+    "BAC": "Bank of America",
+    "XOM": "Exxon Mobil",
+    "CVX": "Chevron",
+    "DIS": "Disney",
+    "UBER": "Uber",
+    "COIN": "Coinbase",
+    "PLTR": "Palantir",
+    "GLD": "SPDR Gold Shares ETF",
+    "IWM": "iShares Russell 2000 ETF",
+    "TLT": "iShares 20+ Year Treasury Bond ETF",
+}
 FEED = "iex"
 WS_URL = "wss://stream.data.alpaca.markets/v2/iex"
 HISTORY_URL = "https://data.alpaca.markets/v2/stocks/NVDA/bars"
