@@ -1,3 +1,16 @@
+## Ronda 9 — Conexión independiente de criptomonedas 24/7 (2026-11-23)
+
+El usuario solicitó disponer de datos de mercado tras el cierre de acciones de EE. UU. Se implementó una **fuente cripto separada de IEX** y de las hipótesis NVDA, en `crypto_live.py`. Su URL WebSocket oficial es `wss://stream.data.alpaca.markets/v1beta3/crypto/us`; se autentica con `Alpaca_key.txt` del equipo sin publicar credenciales; recibe `trades`, `quotes`, `bars` y `updatedBars`, y carga barras con REST `/v1beta3/crypto/us/bars`. Al iniciar, solo abre un WebSocket cripto en segundo plano tras abrir `/api/crypto/live`. No altera la conexión IEX, abre cuentas ni envía órdenes.
+
+Pares seleccionables: BTC/USD, ETH/USD, SOL/USD. Rutas locales:
+- `/crypto`: pantalla nueva enlazada desde el panel REALTIME `/live`.
+- `GET /api/crypto/live`: solo lectura, estado de conexión, cotización, operaciones, velas, timestamps y `operativa_autorizada=false`.
+- `POST /api/crypto/symbol`: valida par y resuscribe el único feed cripto sin mezclar datos previos.
+
+La página dibuja velas de 1m, precio de la última operación, bid/ask, recencia y fallos de autenticación o de suscripción. Los precios de las velas cripto **pueden incorporar puntos medios bid/ask**, por documentación de Alpaca, incluso cuando no hay trades: no deben presentarse como última transacción ni como precio de liquidación IQ Option. La arquitectura no conecta el motor predictivo NVDA con BTC/USD. Las alertas/subidas/bajadas de un instrumento no son extrapolables a otro. Cobertura 24/7 se refiere al horario de mercado, no a garantía de actividad continua del proveedor.
+
+**Limitación de validación real:** las pruebas automáticas usan mensajes y REST simulados; el entorno GitHub Actions no dispone de la clave privada del usuario. No se declara conexión efectiva ni latencia real sin comprobar en su PC el estado `conectado` y marcas de tiempo actuales en /api/crypto/live. Fuentes oficiales de contrato: https://docs.alpaca.markets/us/docs/real-time-crypto-pricing-data y https://docs.alpaca.markets/us/reference/cryptobars-1.
+
 ## Ronda 8 — Catálogo multiactivo REALTIME (2026-11-23)
 
 Solicitud: ampliar el selector de activos que antes mostraba seis opciones; el escáner histórico mantiene su capacidad independiente de hasta 200 símbolos. El backend REALTIME ahora ofrece 24 acciones/ETF estadounidenses; la interfaz carga la lista desde `available_symbols`, sin duplicar un catálogo fijo en HTML.
