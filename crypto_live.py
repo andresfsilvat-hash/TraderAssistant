@@ -175,13 +175,8 @@ class CryptoFeed:
             return authorized, False
         kind = obj.get("T")
         if kind == "success" and obj.get("msg") == "authenticated":
-            authorized = True
-            with self.lock:
-                symbol = self.symbol
-            ws.send(json.dumps({"action": "subscribe", "trades": [symbol],
-                                "quotes": [symbol], "bars": [symbol],
-                                "updatedBars": [symbol]}))
-            return authorized, False
+            # run() suscribe exactamente una vez, tras autenticar.
+            return True, False
         if kind == "error":
             code = obj.get("code")
             with self.lock:
