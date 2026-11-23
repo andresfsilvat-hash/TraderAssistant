@@ -1,3 +1,13 @@
+## Ronda 8 — Catálogo multiactivo REALTIME (2026-11-23)
+
+Solicitud: ampliar el selector de activos que antes mostraba seis opciones; el escáner histórico mantiene su capacidad independiente de hasta 200 símbolos. El backend REALTIME ahora ofrece 24 acciones/ETF estadounidenses; la interfaz carga la lista desde `available_symbols`, sin duplicar un catálogo fijo en HTML.
+
+**Invariantes:** solo un símbolo en la suscripción activa Alpaca IEX; selección mediante endpoint validado; caché separado por símbolo; sin ampliar conexiones, automatizar órdenes ni validar la señal en otros activos. `evaluate_hypothesis` sigue restringido a NVDA en el motor experimental V5; la disponibilidad de un activo en el selector no equivale a una predicción ni a soporte de IQ Option.
+
+**Horario:** los 24 instrumentos comparten sesión de mercado estadounidense. Esta mejora permite elegir más activos durante la sesión y consultar históricos fuera de ella, **no** elimina el cierre simultáneo. Para horarios 24/7 es necesario integrar por separado un feed de criptomonedas o equivalente, con sus propios datos y controles de calidad, antes de ofrecer una opción funcional.
+
+Se actualizó el hash de protección `alpaca_live.py` únicamente por la modificación autorizada del catálogo; quedaron protegidas las demás funciones del feed. Se agregaron pruebas de catálogo, cambios de símbolo, ausencia de conexiones adicionales, UI dinámica y abstención por activos ajenos a NVDA.
+
 # Auditoría progresiva — TraderAssistant V5
 
 ## Objetivo acordado
