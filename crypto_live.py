@@ -100,7 +100,7 @@ class CryptoFeed:
         self.series_revision += 1
 
     def select_symbol(self, symbol):
-        if symbol not in CRYPTO_SYMBOLS:
+        if not isinstance(symbol, str) or symbol not in CRYPTO_SYMBOLS:
             raise ValueError("Par cripto no permitido")
         with self.lock:
             if symbol == self.symbol:
