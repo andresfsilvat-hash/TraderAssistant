@@ -50,6 +50,33 @@ def construir_estado_v5(market, analysis, *, ahora_utc):
                                "justificacion": str(payload.get("justificacion") or ""),
                                "operativa_autorizada": False})
 
+    # El diagnóstico muestra por horizonte qué está impidiendo la señal,
+    # sin modificar los criterios experimentales ni forzar entradas.
+    rechazos = {}
+    for horizon in HORIZONTES:
+        item = evaluations.get(str(horizon))
+        if isinstance(item, dict):
+            rechazos[str(horizon)] = {
+                "direccion": item.get("direccion") if item.get("direccion") in
+                             ("SUBE", "BAJA") else "ESPERAR",
+                "justificacion": str(item.get("justificacion") or "Sin justificación"),
+                "contradicciones": list(item.get("evidencia_contra") or []),
+                "faltantes": list(item.get("faltante") or []),
+            }
+        else:
+            rechazos[str(horizon)] = {"direccion": "ESPERAR",
+                                      "justificacion": "Horizonte no evaluado",
+                                      "contradicciones": [], "faltantes": []}
+    context = analysis.get("context") or {}
+    daily = context.get("1d") or {}
+    quality_alerts = []
+    if daily.get("quality_flag") == "PRICE_SCALE_MISMATCH":
+        quality_alerts.append({
+            "codigo": "PRICE_SCALE_MISMATCH",
+            "detalle": str(daily.get("reason") or ""),
+            "desviacion_pct": daily.get("desviacion_frente_ultimo_precio_pct"),
+        })
+
     reasons = []
     if not same_symbol:
         reasons.append("Sin análisis NVDA consistente con el activo REALTIME")
@@ -59,6 +86,8 @@ def construir_estado_v5(market, analysis, *, ahora_utc):
         reasons.append("No hay datos de mercado frescos")
     if not age_valid:
         reasons.append("No se puede comprobar el retardo de la última operación")
+    if quality_alerts:
+        reasons.append("Inconsistencia detectada en el histórico diario; contexto diario bloqueado")
     reasons.append("Falta validar el instrumento, la predicción anticipada y el vencimiento en IQ Option")
     return {
         "version": "v5-diagnostico-1",
@@ -74,6 +103,8 @@ def construir_estado_v5(market, analysis, *, ahora_utc):
         "analisis_listo": bool(ready),
         "retardo_ultimo_trade_ms": age if age_valid else None,
         "hipotesis_experimentales": candidates,
+        "diagnostico_por_duracion": rechazos,
+        "alertas_calidad": quality_alerts,
         "motivos_espera": reasons,
         "ahora_utc": now.isoformat(),
     }
