@@ -80,6 +80,18 @@ La API `/api/v5/estado` funciona como diagnóstico; **permanece en ESPERAR por d
 - Horizonte 30s: análisis exploratorio de 5s separado, sin planificador habilitado hasta calibración.
 - La hora hipotética usa una frontera de minuto posterior al análisis para pruebas temporales; **no existe evidencia de que sea el mejor momento para operar**.
 
+## Ronda 7 — Corrección diaria y diagnóstico de ESPERAR (2026-11-23)
+
+Hallazgo en una respuesta real del usuario: contexto 1d con cierre 125,65 y `sma20 == sma50 == 208,4575`, frente a precio 1m de 164,60; 1h Alcista y 1m/1d Bajista. No se presume que el histórico esté corrupto: hay que verificar datos ajustados, continuidad y origen.
+
+Cambios:
+- `multitimeframe_context.py`: ahora la tendencia y campo `sma20` del contexto diario usan realmente 20 sesiones; la `sma50` se calcula por separado. La implementación anterior usaba 50 como parámetro de ambas, lo que además podía producir pendiente incompleta con 50-52 sesiones.
+- Se añade control conservador de divergencia >20% entre último cierre diario y último precio regular disponible, con bandera `PRICE_SCALE_MISMATCH` y bloqueo **solo** del contexto diario; no reescribe ni ajusta precios, no elimina el análisis 1m/1h. Este umbral es una alerta inicial configurable en código, no un detector probado de splits; requiere revisión de fuentes ante una alerta.
+- `engine/estado_v5.py`: `diagnostico_por_duracion` para 30/60/120/300/600, con faltantes/contradicciones, y `alertas_calidad` con causa y desviación.
+- `pruebas/test_calidad_contexto_v5.py` y `pruebas/test_estado_v5.py`: tests de SMA20 vs SMA50, diferencias de escala, funcionamiento normal y exposición de los motivos. Se conserva `operativa_autorizada=false` en todo momento.
+
+No se alteran las reglas de las hipótesis de dirección para forzar señales. El motor sigue experimental; mejora la integridad y explicación del resultado, no demuestra subida de tasa de aciertos.
+
 ## Hallazgos de la auditoría del proyecto actual
 
 1. `decision_engine_experimental.py` admite horizontes 60/120/300/600, pero todavía no 30 segundos; su decisión operativa permanece **ESPERAR**.
