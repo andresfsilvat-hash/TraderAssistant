@@ -48,6 +48,20 @@ select{background:#111a29;color:var(--fg);border:1px solid var(--border);border-
 <div id="chart"></div>
 <div class="note" id="chart-note">Solicitando historial autenticado a Alpaca.</div>
 </div>
+<div class="panel">
+<div class="row" style="justify-content:space-between">
+<strong>ANÁLISIS V5 · CRIPTO — HIPÓTESIS EXPERIMENTAL, NO OPERAR</strong>
+<span class="muted">Probabilidad de acierto: no estimada</span>
+</div>
+<div class="row" style="margin-top:12px;align-items:flex-start">
+<div style="min-width:170px;flex:1"><div class="label">Calidad de datos</div><div class="value" id="crypto-calidad" style="font-size:17px">Analizando…</div></div>
+<div style="min-width:170px;flex:1"><div class="label">Hipótesis 2 minutos</div><div class="value" id="crypto-direccion" style="font-size:17px">ESPERAR</div></div>
+<div style="min-width:170px;flex:1"><div class="label">Reloj (solo simulación)</div><div class="value" id="crypto-reloj" style="font-size:17px">ESPERAR</div></div>
+<div style="min-width:170px;flex:1"><div class="label">Entrada hipotética</div><div class="value" id="crypto-entrada" style="font-size:17px">—</div></div>
+</div>
+<div class="note" id="crypto-indicadores">Esperando validación de velas cerradas…</div>
+<div class="note" id="crypto-diagnostico" style="margin-top:8px">No hay recomendaciones de inversión ni operaciones automáticas.</div>
+</div>
 <div class="panel notice"><strong>AVISO:</strong> Cripto opera 24/7, pero pueden existir pausas, ausencia de negocios o demoras de proveedor. La etiqueta «conectado» solamente indica suscripción WebSocket; el dato se considera actual solo cuando su marca de tiempo lo confirma. Las velas cripto de Alpaca pueden incluir puntos medios de cotizaciones incluso con volumen cero. Esta vista NO genera señales SUBE/BAJA validadas, NO abre órdenes y NO representa precios ni vencimientos de IQ Option.</div>
 <div class="note" id="error"></div>
 </main>
@@ -116,6 +130,64 @@ async function update(){
  }catch(e){$('status').textContent='Error al consultar feed cripto';$('dot').className='dot';$('error').textContent=String(e.message||e)}
  finally{busy=false}
 }
+let ultimaHipotesisCripto = null;
+function paintCryptoCountdown(){
+ if(!ultimaHipotesisCripto || ultimaHipotesisCripto.symbol!==active)return;
+ const clock=ultimaHipotesisCripto.reloj_experimental||{};
+ const t=Date.parse(clock.entrada_utc||'');
+ const now=Date.now(), diff=(t-now)/1000;
+ // La hora local debe estar sincronizada. La API puede cancelar por datos viejos.
+ const status=clock.estado||'ESPERAR';
+ if(!Number.isFinite(t)||status==='CANCELADA'||status==='VENTANA_CERRADA'){
+   $('crypto-reloj').textContent=status==='ESPERAR'?'ESPERAR':status+' · NO OPERAR';
+   return;
+ }
+ const sec=Math.ceil(diff);
+ if(diff < -1){
+   $('crypto-reloj').textContent='VENTANA CERRADA · NO OPERAR';
+ }else if(diff<=0){
+   $('crypto-reloj').textContent='ENTRAR (SIMULACIÓN) · NO OPERAR';
+ }else if(diff<=10){
+   $('crypto-reloj').textContent='CUENTA REGRESIVA · '+sec+' · NO OPERAR';
+ }else if(diff<=30){
+   $('crypto-reloj').textContent='PREPARARSE · '+sec+' s · SIMULACIÓN';
+ }else{
+   $('crypto-reloj').textContent='ESPERAR · '+sec+' s · SIMULACIÓN';
+ }
+}
+async function updateCryptoAnalysis(){
+ try{
+   const response=await fetch('/api/crypto/analisis',{cache:'no-store'});
+   if(!response.ok)throw new Error('HTTP '+response.status);
+   const result=await response.json();
+   if(result.symbol!==active)return;
+   ultimaHipotesisCripto=result;
+   const quality=result.calidad||{}, vals=result.indicadores||{};
+   $('crypto-calidad').textContent=quality.apta?'DATOS APTOS PARA OBSERVACIÓN':'DATOS INSUFICIENTES';
+   const hypo=(result.evaluaciones||{})['120']||{};
+   $('crypto-direccion').textContent=(hypo.direccion||'ESPERAR')+' · NO VALIDADO';
+   const clock=result.reloj_experimental||{};
+   $('crypto-entrada').textContent=clock.entrada_utc?when(clock.entrada_utc):'—';
+   $('crypto-indicadores').textContent=quality.apta?
+      'RSI14 '+vals.rsi14+' · MACD '+vals.macd_hist+' · SMA20 '+vals.sma20+
+      ' · SMA50 '+vals.sma50+' · Volumen relativo '+vals.ratio_volumen:
+      'Velas cerradas '+(quality.velas_cerradas||0)+' · sin datos inventados';
+   const durations=[60,120,300,600].map(t=>{
+     const item=(result.evaluaciones||{})[String(t)]||{};
+     return (t/60)+'m: '+(item.direccion||'ESPERAR');
+   }).join(' | ');
+   $('crypto-diagnostico').textContent=(result.motivo||'Sin diagnóstico')+' · '+durations+
+     ' · Nunca operar con esta hipótesis sin validación';
+   paintCryptoCountdown();
+ }catch(e){
+   ultimaHipotesisCripto=null;
+   $('crypto-calidad').textContent='SIN VERIFICAR';
+   $('crypto-direccion').textContent='ESPERAR';
+   $('crypto-reloj').textContent='ESPERAR';
+   $('crypto-entrada').textContent='—';
+   $('crypto-diagnostico').textContent='Análisis no disponible: '+String(e.message||e);
+ }
+}
 $('pair').addEventListener('change',async ev=>{
  const symbol=ev.target.value,select=$('pair');
  select.disabled=true;
@@ -124,12 +196,21 @@ $('pair').addEventListener('change',async ev=>{
    body:JSON.stringify({symbol})});
   if(!r.ok)throw new Error('HTTP '+r.status);
   active=symbol;signature='';candle.setData([]);$('error').textContent='';
+  ultimaHipotesisCripto=null;
+  $('crypto-calidad').textContent='Analizando…';
+  $('crypto-direccion').textContent='ESPERAR';
+  $('crypto-reloj').textContent='ESPERAR';
+  $('crypto-entrada').textContent='—';
   await update();
+  await updateCryptoAnalysis();
  }catch(e){select.value=active;$('error').textContent='No se pudo cambiar de par: '+String(e.message||e)}
  finally{select.disabled=false}
 });
 update();
+updateCryptoAnalysis();
 setInterval(update,2500);
+setInterval(updateCryptoAnalysis,2500);
+setInterval(paintCryptoCountdown,1000);
 </script>
 </body>
 </html>
