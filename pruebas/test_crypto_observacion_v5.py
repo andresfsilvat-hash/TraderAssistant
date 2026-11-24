@@ -96,8 +96,10 @@ class CryptoObservacionV5Tests(unittest.TestCase):
         data = sample_market()
         data["candles"][-1]["provisional"] = True
         x = analizar_crypto(data, ahora_utc=T)
-        self.assertFalse(x["calidad"]["apta"])  # gap en últimos 40
-        self.assertIn("huecos", x["motivo"])
+        self.assertEqual(x["calidad"]["velas_cerradas"], 109)
+        self.assertEqual(x["calidad"]["ultima_vela_utc"],
+                         (T-timedelta(minutes=2)).isoformat())
+        self.assertFalse(x["operativa_autorizada"])
 
     def test_bloquea_saltos_de_precio_anomalos(self):
         data = sample_market()
