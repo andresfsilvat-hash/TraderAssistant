@@ -4,6 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import json
+import re
+import shutil
+import subprocess
 import unittest
 
 from flask import Flask
@@ -168,6 +171,20 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(response.json["segundos_para_entrada"], 10)
         self.assertFalse(response.json["operativa_autorizada"])
         self.assertEqual(app.test_client().post("/api/v5/demo").status_code, 405)
+
+    def test_ui_inline_javascript_parses(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("Node.js no instalado en este entorno.")
+        html = (Path(__file__).resolve().parents[1]/"ui"/"live.html").read_text(encoding="utf-8")
+        scripts = [body for body in re.findall(
+            r"<script[^>]*>([\\s\\S]*?)</script>", html) if body.strip()]
+        self.assertEqual(len(scripts), 1)
+        code_path = Path(self.tmp.name)/"v5_ui_check.js"
+        code_path.write_text(scripts[0], encoding="utf-8")
+        checked = subprocess.run([node, "--check", str(code_path)],
+                                 capture_output=True, text=True, timeout=10)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
 
     def test_ui_has_v5_countdown_voice_and_results(self):
         ui = (Path(__file__).resolve().parents[1]/"ui"/"live.html").read_text(encoding="utf-8")
