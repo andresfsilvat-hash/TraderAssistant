@@ -18,7 +18,8 @@ import uuid
 
 from flask import jsonify
 
-DATA_FILE = Path(__file__).resolve().parent / "cache" / "nvda_v5_demo_resultados.json"
+# Fuera del repositorio: git stash/pull nunca borra el histórico de hipótesis.
+DATA_FILE = Path.home() / "Documents" / "TraderAssistant" / "registro_nvda_v5.json"
 DURATIONS = (30, 60, 120, 300, 600)
 ENTRY_DELAY_SECONDS = 10
 OBSERVATION_GRACE_SECONDS = 6
@@ -100,9 +101,9 @@ def proponer_hipotesis(market, analysis, *, ahora_utc):
     if market.get("symbol") != "NVDA" or analysis.get("symbol") != "NVDA":
         return fail("Disponible únicamente para NVIDIA (NVDA).")
     clock = market.get("market_clock") or {}
+    verified = _parse(clock.get("checked_at"))
     if (clock.get("source") != "alpaca" or clock.get("is_open") is not True or
-            not _parse(clock.get("checked_at")) or
-            (now-_parse(clock["checked_at"])).total_seconds() > 600):
+            verified is None or not -1 <= (now-verified).total_seconds() <= 600):
         return fail("Bolsa cerrada o horario Alpaca sin verificar.")
     if market.get("status") != "conectado":
         return fail("Alpaca IEX no está suscrito.")
