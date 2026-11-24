@@ -32,6 +32,11 @@ register_crypto_live(app)
 from analysis_live import register_live_analysis
 register_live_analysis(app)
 
+# V5: demo NVIDIA independiente. Registra resultados prospectivos IEX
+# a partir de la recepción en esta máquina; sin envío de órdenes.
+from nvda_demo_v5 import register_nvda_demo_v5
+register_nvda_demo_v5(app)
+
 # Read-only view of the independent experimental simulator. No calculations,
 # process management or market connections are performed by this endpoint.
 from simulation_results import register_simulation_results
