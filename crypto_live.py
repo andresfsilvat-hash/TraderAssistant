@@ -318,6 +318,16 @@ def register_crypto_live(app):
         response.headers["Cache-Control"] = "no-store"
         return response
 
+    @app.route("/api/crypto/analisis", methods=["GET"])
+    def crypto_analysis_state():
+        from engine.crypto_observacion_v5 import analizar_crypto
+        # Nunca crea órdenes ni modifica el motor de acciones.
+        _feed.start()
+        value = analizar_crypto(_feed.snapshot(), ahora_utc=datetime.now(timezone.utc))
+        response = jsonify(value)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     @app.route("/api/crypto/symbol", methods=["POST"])
     def crypto_set_symbol():
         payload = request.get_json(silent=True)
