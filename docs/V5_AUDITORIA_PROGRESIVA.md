@@ -1,3 +1,11 @@
+## Ronda 11 — Reloj cripto cuando solo 1 minuto tiene hipótesis (2026-11-24)
+
+Observación recibida en BTC/USD con datos aptos: `60: SUBE`, `120/300/600: ESPERAR` por falta de confirmación de pendiente SMA20. La API devolvía reloj `ESPERAR` porque estaba fijado a 120s, aunque 60s había dado una **hipótesis experimental**.
+
+Corrección en `engine/crypto_observacion_v5.py`: se selecciona el primer horizonte que tiene SUBE/BAJA según prioridad fija `(120, 60, 300, 600)`. Por ello 2m sigue siendo el ensayo predeterminado **cuando cumple**, y 1m ahora puede activar el reloj si 2m no cumple. La API indica explícitamente `horizonte_reloj_seleccionado` y `criterio_reloj`. **No es una selección por tasa de éxito ni una recomendación de inversión**. No se han reducido umbrales ni eliminado causas de ESPERAR. La entrada de simulación mantiene el instante fijo calculado desde última vela cerrada y no se desplaza por consultas HTTP.
+
+La página `ui/crypto.html` muestra la dirección y el número de minutos de la hipótesis que realmente alimenta el reloj. Prueba sintética `test_hipotesis_1min_usa_reloj_si_2min_espera`: precio/MACD/RSI/retorno aceptan SUBE 1m, pendiente SMA20 rechaza 2m; espera y cuenta regresiva sin órdenes y fecha estable. `operativa_autorizada=false` y `probabilidad_acierto=null` siguen invariables.
+
 ## Ronda 10 — Observación técnica cripto, hipótesis y reloj de prueba (2026-11-24)
 
 Después de que el usuario confirmó en su PC WebSocket suscrito, operaciones y cotizaciones recientes de BTC/USD, se agregó `engine/crypto_observacion_v5.py` y `GET /api/crypto/analisis`, totalmente separados del análisis NVDA. Acepta únicamente BTC/USD, ETH/USD y SOL/USD desde `Alpaca Crypto US`; no comparte estadísticas, precio, supuestas ventajas ni habilitación de trading con IQ Option.
