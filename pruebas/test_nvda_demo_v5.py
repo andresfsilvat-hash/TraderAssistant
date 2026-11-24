@@ -53,7 +53,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertTrue(out["disponible"])
         self.assertEqual(out["direccion"], "SUBE")
         self.assertGreaterEqual(out["puntaje_concordancia"], 50)
-        self.assertEqual(out["duracion_segundos"], 300)
+        self.assertEqual(out["duracion_segundos"], 600)
         self.assertNotIn("probabilidad", out)
 
     def test_10s_frozen_schedule_and_no_duplicate_from_poll(self):
@@ -87,6 +87,11 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(final["ultima_hipotesis"]["resultado"], "ACIERTO")
         self.assertEqual(final["estadisticas"]["tasa_acierto_pct"], 100)
         self.assertEqual(final["estadisticas"]["aciertos"], 1)
+        self.assertEqual(final["estadisticas_por_duracion"]["600"]["aciertos"], 1)
+        self.assertEqual(final["estadisticas_por_duracion"]["600"]["tasa_acierto_pct"], 100)
+        self.assertEqual(final["estadisticas_por_duracion"]["30"]["tasa_acierto_pct"], None)
+        self.assertIn("bid_entrada", final["ultima_hipotesis"])
+        self.assertIn("ask_salida", final["ultima_hipotesis"])
         self.assertIn("NO es operación IQ Option", final["ultima_hipotesis"]["motivo_resultado"])
 
     def test_fallo_baja_y_no_evaluable_when_missing_quote(self):
@@ -169,6 +174,8 @@ class DemoNVDAEngineTests(unittest.TestCase):
         for text in ("v5demo-direction", "v5demo-countdown", "v5demo-accuracy",
                      "/api/v5/demo", "v5demo-voice", "ENTRADA SIMULADA AHORA"):
             self.assertIn(text, ui)
+        self.assertEqual(ui.count("</script>"), 2)
+        self.assertEqual(ui.count("setInterval(fetchSimulation,2000);"), 1)
 
 
 if __name__ == "__main__":
