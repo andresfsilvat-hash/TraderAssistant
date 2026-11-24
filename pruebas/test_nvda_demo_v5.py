@@ -178,7 +178,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
             self.skipTest("Node.js no instalado en este entorno.")
         html = (Path(__file__).resolve().parents[1]/"ui"/"live.html").read_text(encoding="utf-8")
         scripts = [body for body in re.findall(
-            r"<script[^>]*>([\\s\\S]*?)</script>", html) if body.strip()]
+            r"<script[^>]*>(.*?)</script>", html, flags=re.DOTALL) if body.strip()]
         self.assertEqual(len(scripts), 1)
         code_path = Path(self.tmp.name)/"v5_ui_check.js"
         code_path.write_text(scripts[0], encoding="utf-8")
