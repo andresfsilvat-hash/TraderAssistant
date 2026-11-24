@@ -50,6 +50,32 @@ class CryptoObservacionV5Tests(unittest.TestCase):
         self.assertEqual(count["estado"], "CUENTA_REGRESIVA")
         self.assertEqual(count["reloj_experimental"]["segundos_para_entrada"], 8)
 
+    def test_hipotesis_1min_usa_reloj_si_2min_espera(self):
+        data = sample_market()
+        # Tendencia de 20 velas aún bajista pero reacción inmediata alcista.
+        # Caso real que motivó el ajuste: solo 60s cumple condiciones.
+        for i, bar in enumerate(data["candles"]):
+            price = 100 - .01*min(i, 103) + .03*max(0, i-103)
+            bar.update(open=price-.02, high=price+.05,
+                       low=price-.05, close=price)
+        at_start = analizar_crypto(data, ahora_utc=T)
+        self.assertTrue(at_start["calidad"]["apta"])
+        self.assertEqual(at_start["evaluaciones"]["60"]["direccion"], "SUBE")
+        self.assertEqual(at_start["evaluaciones"]["120"]["direccion"], "ESPERAR")
+        self.assertEqual(at_start["horizonte_reloj_seleccionado"], 60)
+        self.assertEqual(at_start["reloj_experimental"]["duracion_segundos"], 60)
+        self.assertFalse(at_start["reloj_experimental"]["operativa_autorizada"])
+        self.assertEqual(at_start["reloj_experimental"]["entrada_utc"],
+                         (T + timedelta(minutes=1)).isoformat())
+        later = sample_market(now=T+timedelta(seconds=52))
+        later["candles"] = data["candles"]
+        at_count = analizar_crypto(later, ahora_utc=T+timedelta(seconds=52))
+        self.assertEqual(at_count["estado"], "CUENTA_REGRESIVA")
+        self.assertEqual(at_count["reloj_experimental"]["segundos_para_entrada"], 8)
+        self.assertEqual(at_count["reloj_experimental"]["entrada_utc"],
+                         at_start["reloj_experimental"]["entrada_utc"])
+        self.assertIsNone(at_count["probabilidad_acierto"])
+
     def test_bloquea_feed_obsoleto(self):
         data = sample_market()
         data["last_feed_message_at"] = (T-timedelta(seconds=20)).isoformat()
