@@ -1,3 +1,15 @@
+## Ronda 10 — Observación técnica cripto, hipótesis y reloj de prueba (2026-11-24)
+
+Después de que el usuario confirmó en su PC WebSocket suscrito, operaciones y cotizaciones recientes de BTC/USD, se agregó `engine/crypto_observacion_v5.py` y `GET /api/crypto/analisis`, totalmente separados del análisis NVDA. Acepta únicamente BTC/USD, ETH/USD y SOL/USD desde `Alpaca Crypto US`; no comparte estadísticas, precio, supuestas ventajas ni habilitación de trading con IQ Option.
+
+Calidad de entrada: exige suscripción confirmada; último mensaje recibido con menos de 15 s y reloj coherente; mínimo 80 velas OHLCV **cerradas**; última vela cerrada con menos de 180 s; 40 velas sin huecos; rechazo de salto mayor a 12% de una vela a otra; rechazo si más del 40% de 20 velas carecen de volumen transado. Esos umbrales son **filtros de ingeniería, no predictores validados**. Los valores con volumen cero pueden provenir de punto medio de cotizaciones según Alpaca (https://docs.alpaca.markets/us/docs/market-data-faq).
+
+Observa RSI14, MACD y señal, SMA20/SMA50, variación de 3m y volumen. Tiene combinaciones experimentales distintas para 1/2/5/10 minutos y devuelve `SUBE/BAJA/ESPERAR` por horizonte, siempre con **HIPÓTESIS EXPERIMENTAL — NO OPERAR**, `probabilidad_acierto=null`, `operativa_autorizada=false`. Los cálculos se hacen solo con datos disponibles hasta la vela cerrada, no con precios futuros. **No se ha validado su rentabilidad ni ninguna tasa de acierto.**
+
+Reloj de SIMULACIÓN: usa solo la hipótesis de 2 min como ensayo fijo, no como duración óptima. La entrada hipotética está anclada a la vela (inicio + 120 s), sin mover el objetivo por refresco de HTTP. Estados ESPERAR/PREPARARSE/CUENTA_REGRESIVA/ENTRAR/VENTANA_CERRADA y cancelación ante datos no frescos; nunca crea orden. No se afirma que esa frontera sea el momento más rentable ni que equivalga al vencimiento de IQ Option. La página `/crypto` muestra diagnóstico, motivos, indicadores, reloj con cuenta regresiva estimada por reloj del PC y advertencia de hipótesis no validada.
+
+Pruebas sintéticas de señales, cancelación por feed viejo, huecos, cero volumen, salto, rechazo de futuro/provisional, aislamiento y GET sin ejecución real en `pruebas/test_crypto_observacion_v5.py`. **Próxima fase:** registrar hipótesis en tiempo real de forma prospectiva e identificar el precio exacto y condiciones de un eventual instrumento de destino antes de calcular probabilidad y payout. No es una estrategia lista para dinero real.
+
 ## Ronda 9 — Conexión independiente de criptomonedas 24/7 (2026-11-23)
 
 El usuario solicitó disponer de datos de mercado tras el cierre de acciones de EE. UU. Se implementó una **fuente cripto separada de IEX** y de las hipótesis NVDA, en `crypto_live.py`. Su URL WebSocket oficial es `wss://stream.data.alpaca.markets/v1beta3/crypto/us`; se autentica con `Alpaca_key.txt` del equipo sin publicar credenciales; recibe `trades`, `quotes`, `bars` y `updatedBars`, y carga barras con REST `/v1beta3/crypto/us/bars`. Al iniciar, solo abre un WebSocket cripto en segundo plano tras abrir `/api/crypto/live`. No altera la conexión IEX, abre cuentas ni envía órdenes.
