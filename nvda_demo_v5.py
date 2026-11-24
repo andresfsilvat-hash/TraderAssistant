@@ -232,6 +232,9 @@ class NVDADemoService:
         x = self.current
         if x is None:
             return
+        if market.get("symbol") != "NVDA":
+            self._finish("NO_EVALUABLE", "Se cambió de activo durante la observación.")
+            return
         start = _parse(x["entrada_programada_utc"])
         expiry = _parse(x["vencimiento_utc"])
         if now < start:
