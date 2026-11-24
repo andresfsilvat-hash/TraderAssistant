@@ -199,6 +199,7 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
     </div>
     <div class="v5DemoFoot" id="v5demo-evidence">Esperando una vela oficial cerrada y cotización reciente de NVDA.</div>
     <div class="v5DemoFoot" id="v5demo-outcome">Todavía no hay hipótesis evaluadas.</div>
+    <div class="v5DemoFoot" id="v5demo-by-duration">Resultados por duración: sin muestra.</div>
     <div class="v5DemoFoot">*Confluencia: concordancia de indicadores, NO probabilidad de ganar. Aciertos: precios medios bid/ask IEX observados, NO resultados ni pagos de IQ Option. Solo simulación.</div>
   </section>
   <details class="v4compare">
@@ -891,6 +892,9 @@ let v5DemoVoice=false;
 let v5DemoEventId=null;
 let v5DemoEntrySpoken=null;
 let v5DemoPending=false;
+function durationV5(seconds){
+ return Number(seconds)<60?Number(seconds)+' segundos':(Number(seconds)/60)+' minutos';
+}
 function sayV5(text){
   if(!v5DemoVoice||!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window))return;
   try{
@@ -939,7 +943,7 @@ function paintV5Countdown(){
  if(remain<=0&&v5DemoEntrySpoken!==item.id){
     v5DemoEntrySpoken=item.id;
     sayV5('Entrada simulada ahora. '+(item.direccion==='SUBE'?'Sube':'Baja')+
-          '. Duración '+Math.round(item.duracion_segundos/60)+' minutos. No operar.');
+          '. Duración '+durationV5(item.duracion_segundos)+'. No operar.');
  }
 }
 function paintV5Demo(data){
@@ -955,12 +959,21 @@ function paintV5Demo(data){
    $('v5demo-evidence').textContent='Este ensayo no utiliza los demás activos.';
    return;
  }
- $('v5demo-duration').textContent=item?Math.round(item.duracion_segundos/60)+' min':'—';
+ $('v5demo-duration').textContent=item?durationV5(item.duracion_segundos):'—';
  $('v5demo-strength').textContent=item?item.puntaje_concordancia+' / 100':'—';
  $('v5demo-accuracy').textContent=stats.tasa_acierto_pct===null||stats.tasa_acierto_pct===undefined?
    'Sin muestra':stats.tasa_acierto_pct+' % ('+stats.aciertos+'/'+(stats.aciertos+stats.fallos)+')';
+ const byDuration=data.estadisticas_por_duracion||{};
+ $('v5demo-by-duration').textContent='Aciertos por duración IEX (sin empates): '+
+  [30,60,120,300,600].map(seconds=>{
+    const item=byDuration[String(seconds)]||{};
+    const total=(item.aciertos||0)+(item.fallos||0);
+    return durationV5(seconds)+': '+
+      (item.tasa_acierto_pct===null||item.tasa_acierto_pct===undefined?
+         'sin muestra':item.tasa_acierto_pct+'% ('+total+' eval.)');
+  }).join(' · ');
  $('v5demo-outcome').textContent=latest?
-   'Última prueba: '+latest.direccion+' · '+(latest.duracion_segundos/60)+' min · '+
+   'Última prueba: '+latest.direccion+' · '+durationV5(latest.duracion_segundos)+' · '+
    latest.resultado+
    (latest.precio_entrada!==null?' · precio proxy entrada USD '+latest.precio_entrada:'')+
    (latest.precio_salida!==null?' · precio proxy salida USD '+latest.precio_salida:'')+
@@ -974,9 +987,10 @@ function paintV5Demo(data){
        ' · no es probabilidad de acierto.';
    if(item.id!==v5DemoEventId){
       v5DemoEventId=item.id;
-      sayV5('NVIDIA. En diez segundos, entrada simulada '+
+      const rem=Math.max(0,Math.ceil((Date.parse(item.entrada_programada_utc)-Date.now())/1000));
+      if(rem>0)sayV5('NVIDIA. En '+rem+' segundos, entrada simulada '+
         (item.direccion==='SUBE'?'sube':'baja')+'. Duración '+
-        Math.round(item.duracion_segundos/60)+' minutos.');
+        durationV5(item.duracion_segundos)+'.');
    }
    paintV5Countdown();
  }else{
