@@ -961,36 +961,9 @@ function paintV5Demo(data){
    'Sin muestra':stats.tasa_acierto_pct+' % ('+stats.aciertos+'/'+(stats.aciertos+stats.fallos)+')';
  $('v5demo-outcome').textContent=latest?
    'Última prueba: '+latest.direccion+' · '+(latest.duracion_segundos/60)+' min · '+
-   latest.resultado+(latest.precio_entrada!==null?' · referencia entrada 
-setInterval(fetchSimulation,2000);
-setInterval(()=>{
-  paintDecisionClock();
-  if(lastPayload)drawClock(lastPayload); // reloj activo aun sin trades, no inventar OHLC
-  else renderMarketClock();
-  if(Date.now()-lastFetchedAt>3000||!sseOk)scheduleFetch();
-},1000);
-function resizeChart(){chart.resize(chartEl.clientWidth,Math.max(160,chartEl.clientHeight-1));}
-if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeChart).observe(chartEl);
-else window.addEventListener('resize',resizeChart);
-</script>
-</body>
-</html>
-+latest.precio_entrada:'')+
-   (latest.precio_salida!==null?' · referencia salida 
-setInterval(fetchSimulation,2000);
-setInterval(()=>{
-  paintDecisionClock();
-  if(lastPayload)drawClock(lastPayload); // reloj activo aun sin trades, no inventar OHLC
-  else renderMarketClock();
-  if(Date.now()-lastFetchedAt>3000||!sseOk)scheduleFetch();
-},1000);
-function resizeChart(){chart.resize(chartEl.clientWidth,Math.max(160,chartEl.clientHeight-1));}
-if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeChart).observe(chartEl);
-else window.addEventListener('resize',resizeChart);
-</script>
-</body>
-</html>
-+latest.precio_salida:'')+
+   latest.resultado+
+   (latest.precio_entrada!==null?' · precio proxy entrada USD '+latest.precio_entrada:'')+
+   (latest.precio_salida!==null?' · precio proxy salida USD '+latest.precio_salida:'')+
    ' · No evaluables acumuladas: '+(stats.no_evaluables||0):
    'Todavía no hay hipótesis registradas.';
  if(item){
