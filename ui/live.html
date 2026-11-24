@@ -41,6 +41,24 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
 @media(max-width:1100px){.summary{grid-template-columns:1fr 1fr}#chart{height:57vh}}
 @media(max-width:650px){.summary{grid-template-columns:1fr}.stat{min-height:75px}.brand small{display:block;margin:3px 0 0}}
 
+/* V5 demo NATO: panel principal de predicciones OBSERVADAS IEX */
+.v5Demo{background:var(--panel);border:1px solid #43516d;border-radius:8px;margin-bottom:9px;padding:10px 13px}
+.v5DemoHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#d6e8ff;font-size:12px;font-weight:700}
+.v5DemoGrid{display:grid;grid-template-columns:1.1fr 1fr .75fr .7fr 1.25fr;gap:12px;align-items:center;margin-top:9px}
+.v5DemoKey{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.v5DemoValue{font-size:20px;font-weight:750;margin-top:3px;font-variant-numeric:tabular-nums}
+.v5DemoValue.bull{color:var(--green)}.v5DemoValue.bear{color:var(--red)}
+.v5DemoFoot{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.35}
+.v5DemoControl{font-size:11px;padding:5px 9px}
+#v5demo-evidence{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:950px){.v5DemoGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}}
+@media(max-width:550px){.v5DemoGrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v5demo-evidence{white-space:normal}}
+@media screen and (min-width:1101px) and (min-height:650px){
+ main.content>.v5Demo{flex:0 0 auto;padding:7px 11px;margin-bottom:8px}
+ .v5DemoGrid{margin-top:6px}.v5DemoValue{font-size:18px}
+ .v5DemoFoot{margin-top:4px}
+}
+
 /* BEGIN TA_VISUAL_DECISION_20261118_V1 (sin llamadas a red ni análisis en segundo plano) */
 .decisionStrip{border:1px solid #344864;background:#151c2b;border-radius:8px;padding:7px 12px;margin-bottom:9px;flex-shrink:0;color:var(--text)}
 .decisionHeading{color:#9bc9fa;font-size:10px;font-weight:700;letter-spacing:.3px;margin-bottom:5px;text-transform:uppercase}
@@ -160,9 +178,25 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
     <span id="quote-state">Cotizaciones IEX: esperando datos</span>
     <span id="market-state">Sin operaciones no hay cambios reales</span>
   </section>
+  <section class="v5Demo" aria-label="V5 Demostración NVIDIA; señales no validadas">
+    <div class="v5DemoHead">
+      <span>V5 · NVIDIA · AVISOS DE PRUEBA EN TIEMPO REAL — NO OPERAR</span>
+      <button class="v5DemoControl" id="v5demo-voice" type="button" aria-pressed="false">Avisos de voz: OFF</button>
+    </div>
+    <div class="v5DemoGrid">
+      <div><div class="v5DemoKey">Aviso experimental</div><div class="v5DemoValue" id="v5demo-direction">ESPERAR</div></div>
+      <div><div class="v5DemoKey">Cuenta regresiva</div><div class="v5DemoValue" id="v5demo-countdown">—</div></div>
+      <div><div class="v5DemoKey">Duración propuesta</div><div class="v5DemoValue" id="v5demo-duration">—</div></div>
+      <div><div class="v5DemoKey">Confluencia técnica*</div><div class="v5DemoValue" id="v5demo-strength">—</div></div>
+      <div><div class="v5DemoKey">Aciertos observados IEX*</div><div class="v5DemoValue" id="v5demo-accuracy">Sin muestra</div></div>
+    </div>
+    <div class="v5DemoFoot" id="v5demo-evidence">Esperando una vela oficial cerrada y cotización reciente de NVDA.</div>
+    <div class="v5DemoFoot" id="v5demo-outcome">Todavía no hay hipótesis evaluadas.</div>
+    <div class="v5DemoFoot">*Confluencia: concordancia de indicadores, NO probabilidad de ganar. Aciertos: precios medios bid/ask IEX observados, NO resultados ni pagos de IQ Option. Solo simulación.</div>
+  </section>
   <!-- BEGIN TA_VISUAL_DECISION_20261118_V1: panel exclusivamente informativo -->
   <section class="decisionStrip" aria-label="Panel de observación; todavía no emite señales de entrada">
-    <div class="decisionHeading">Asistente experimental · NVIDIA · HIPÓTESIS — NO OPERAR</div>
+    <div class="decisionHeading">Motor estricto anterior V4 · REFERENCIA (puede indicar ESPERAR aunque V5 emita hipótesis) — NO OPERAR</div>
     <div class="decisionGrid">
       <div class="decisionCell"><div class="decisionLabel">Evaluación</div><div class="decisionValue"><span class="decisionWait" id="decision-current">ESPERAR</span></div></div>
       <div class="decisionCell"><div class="decisionLabel">Momento de detección</div><div class="decisionValue decisionCompact" id="decision-detected">—</div></div>
@@ -839,9 +873,145 @@ if(typeof EventSource!=='undefined') {
   source.onopen=()=>{sseOk=true;$('delivery').textContent='Canal: SSE conectado';};
   source.onerror=()=>{sseOk=false;$('delivery').textContent='Canal: SSE reconectando; respaldo activo';};
 }else $('delivery').textContent='Canal: respaldo periódico';
+// V5 observación en tiempo real: fuente separada del motor V4 conservador.
+// El cliente solo pinta estados servidor y no inventa precios ni resultados.
+let v5DemoLatest=null;
+let v5DemoVoice=false;
+let v5DemoEventId=null;
+let v5DemoEntrySpoken=null;
+let v5DemoPending=false;
+function sayV5(text){
+  if(!v5DemoVoice||!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window))return;
+  try{
+    window.speechSynthesis.cancel();
+    const message=new SpeechSynthesisUtterance(text);
+    message.lang='es-EC';message.rate=.95;
+    window.speechSynthesis.speak(message);
+  }catch(_) { /* voz opcional */ }
+}
+$('v5demo-voice').addEventListener('click',()=>{
+  v5DemoVoice=!v5DemoVoice;
+  $('v5demo-voice').textContent='Avisos de voz: '+(v5DemoVoice?'ON':'OFF');
+  $('v5demo-voice').setAttribute('aria-pressed',String(v5DemoVoice));
+  if(v5DemoVoice)sayV5('Avisos de voz para simulación, activados.');
+});
+function paintV5Countdown(){
+ const data=v5DemoLatest;
+ if(!data)return;
+ const item=data.hipotesis_activa;
+ if(!item){
+   $('v5demo-countdown').textContent='—';
+   return;
+ }
+ const at=Date.parse(item.entrada_programada_utc||'');
+ const expiration=Date.parse(item.vencimiento_utc||'');
+ if(!Number.isFinite(at))return;
+ const remain=(at-Date.now())/1000;
+ const symbol=activeSymbol==='NVDA';
+ if(!symbol)return;
+ if(remain>0){
+    $('v5demo-direction').textContent=item.direccion+' · EN '+Math.ceil(remain)+' s';
+    $('v5demo-countdown').textContent=String(Math.ceil(remain)).padStart(2,'0')+' s';
+ }else if(item.precio_entrada===null){
+    $('v5demo-direction').textContent=item.direccion+' · ENTRADA SIMULADA AHORA';
+    $('v5demo-countdown').textContent='00 s';
+ }else if(Date.now()<expiration){
+    $('v5demo-direction').textContent=item.direccion+' · SEGUIMIENTO';
+    $('v5demo-countdown').textContent='Evaluando';
+ }else{
+    $('v5demo-countdown').textContent='Resultado pendiente';
+ }
+ if(remain<=0&&v5DemoEntrySpoken!==item.id){
+    v5DemoEntrySpoken=item.id;
+    sayV5('Entrada simulada ahora. '+(item.direccion==='SUBE'?'Sube':'Baja')+
+          '. Duración '+Math.round(item.duracion_segundos/60)+' minutos. No operar.');
+ }
+}
+function paintV5Demo(data){
+ v5DemoLatest=data;
+ const latest=data.ultima_hipotesis, item=data.hipotesis_activa;
+ const candidate=data.candidato_actual||{}, stats=data.estadisticas||{};
+ if(activeSymbol!=='NVDA'){
+   $('v5demo-direction').textContent='SOLO NVIDIA';
+   $('v5demo-countdown').textContent='—';
+   $('v5demo-duration').textContent='—';
+   $('v5demo-strength').textContent='—';
+   $('v5demo-evidence').textContent='Este ensayo no utiliza los demás activos.';
+   return;
+ }
+ $('v5demo-duration').textContent=item?Math.round(item.duracion_segundos/60)+' min':'—';
+ $('v5demo-strength').textContent=item?item.puntaje_concordancia+' / 100':'—';
+ $('v5demo-accuracy').textContent=stats.tasa_acierto_pct===null||stats.tasa_acierto_pct===undefined?
+   'Sin muestra':stats.tasa_acierto_pct+' % ('+stats.aciertos+'/'+(stats.aciertos+stats.fallos)+')';
+ $('v5demo-outcome').textContent=latest?
+   'Última prueba: '+latest.direccion+' · '+(latest.duracion_segundos/60)+' min · '+
+   latest.resultado+(latest.precio_entrada!==null?' · referencia entrada 
+setInterval(fetchSimulation,2000);
+setInterval(()=>{
+  paintDecisionClock();
+  if(lastPayload)drawClock(lastPayload); // reloj activo aun sin trades, no inventar OHLC
+  else renderMarketClock();
+  if(Date.now()-lastFetchedAt>3000||!sseOk)scheduleFetch();
+},1000);
+function resizeChart(){chart.resize(chartEl.clientWidth,Math.max(160,chartEl.clientHeight-1));}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeChart).observe(chartEl);
+else window.addEventListener('resize',resizeChart);
+</script>
+</body>
+</html>
++latest.precio_entrada:'')+
+   (latest.precio_salida!==null?' · referencia salida 
+setInterval(fetchSimulation,2000);
+setInterval(()=>{
+  paintDecisionClock();
+  if(lastPayload)drawClock(lastPayload); // reloj activo aun sin trades, no inventar OHLC
+  else renderMarketClock();
+  if(Date.now()-lastFetchedAt>3000||!sseOk)scheduleFetch();
+},1000);
+function resizeChart(){chart.resize(chartEl.clientWidth,Math.max(160,chartEl.clientHeight-1));}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeChart).observe(chartEl);
+else window.addEventListener('resize',resizeChart);
+</script>
+</body>
+</html>
++latest.precio_salida:'')+
+   ' · No evaluables acumuladas: '+(stats.no_evaluables||0):
+   'Todavía no hay hipótesis registradas.';
+ if(item){
+   $('v5demo-direction').className='v5DemoValue '+(item.direccion==='SUBE'?'bull':'bear');
+   const evidence=Array.isArray(item.evidencias)?item.evidencias:[];
+   $('v5demo-evidence').textContent='Evidencia de la hipótesis: '+evidence.map(e=>
+       e.indicador+' '+e.voto+' (peso '+e.peso+')').join(' · ')+
+       ' · no es probabilidad de acierto.';
+   if(item.id!==v5DemoEventId){
+      v5DemoEventId=item.id;
+      sayV5('NVIDIA. En diez segundos, entrada simulada '+
+        (item.direccion==='SUBE'?'sube':'baja')+'. Duración '+
+        Math.round(item.duracion_segundos/60)+' minutos.');
+   }
+   paintV5Countdown();
+ }else{
+   $('v5demo-direction').className='v5DemoValue';
+   $('v5demo-direction').textContent='ESPERAR · SIN ENTRADA';
+   $('v5demo-evidence').textContent=candidate.motivo||'Aguardando próxima hipótesis.';
+ }
+}
+async function updateV5Demo(){
+ if(v5DemoPending)return;
+ v5DemoPending=true;
+ try {
+   const response=await fetch('/api/v5/demo',{cache:'no-store'});
+   if(!response.ok)throw new Error('HTTP '+response.status);
+   paintV5Demo(await response.json());
+ }catch(e){$('v5demo-evidence').textContent='No se pudo consultar la demostración V5: '+(e.message||e);}
+ finally{v5DemoPending=false;}
+}
 fetchSnapshot();
 fetchSimulation();
 paintDecisionClock();
+updateV5Demo();
+setInterval(updateV5Demo,500);
+setInterval(paintV5Countdown,150);
 setInterval(fetchSimulation,2000);
 setInterval(()=>{
   paintDecisionClock();
