@@ -19,7 +19,7 @@ import uuid
 from flask import jsonify
 
 DATA_FILE = Path(__file__).resolve().parent / "cache" / "nvda_v5_demo_resultados.json"
-DURATIONS = (60, 120, 300, 600)
+DURATIONS = (30, 60, 120, 300, 600)
 ENTRY_DELAY_SECONDS = 10
 OBSERVATION_GRACE_SECONDS = 6
 CANDLE_MAX_AGE_SECONDS = 150
@@ -154,9 +154,13 @@ def proponer_hipotesis(market, analysis, *, ahora_utc):
     strength = round(100 * in_favor / total) if total else 0
 
     # Política de duraciones REPRODUCIBLE, no entrenada ni calibrada.
-    # Mayor concordancia => se ensaya horizonte más largo. Sin filtro de
-    # patrón que fuerce ESPERAR cuando existe cotización y datos válidos.
-    duration = 300 if strength >= 85 else 120 if strength >= 70 else 60
+    # Mayor concordancia => se ensaya horizonte más largo. NO es ranking
+    # optimizado de duración ni tiene respaldo estadístico. Toda duración es
+    # hipótesis causal prospectiva que contrastaremos después con datos IEX.
+    duration = (600 if strength >= 95 else
+                300 if strength >= 85 else
+                120 if strength >= 70 else
+                60 if strength >= 55 else 30)
     return {"disponible": True, "motivo": "Hipótesis mecánica para medir, no validada.",
             "direccion": direction, "duracion_segundos": duration,
             "puntaje_concordancia": strength, "peso_favor": in_favor,
@@ -246,6 +250,8 @@ class NVDADemoService:
             if q:
                 x["precio_entrada"] = q["price"]
                 x["fuente_entrada"] = q["source"]
+                x["bid_entrada"] = q["bid"]
+                x["ask_entrada"] = q["ask"]
                 x["observada_entrada_utc"] = q["timestamp"]
                 self._save()
             elif (now-start).total_seconds() > OBSERVATION_GRACE_SECONDS:
@@ -260,6 +266,8 @@ class NVDADemoService:
             return
         x["precio_salida"] = q["price"]
         x["fuente_salida"] = q["source"]
+        x["bid_salida"] = q["bid"]
+        x["ask_salida"] = q["ask"]
         x["observada_salida_utc"] = q["timestamp"]
         delta = x["precio_salida"] - x["precio_entrada"]
         if delta == 0:
@@ -285,6 +293,22 @@ class NVDADemoService:
                 "base_porcentaje": "Aciertos/(aciertos+fallos); empates no cuentan",
                 "indicador": "Muestra local IEX proxy, no resultados de IQ Option",
                 "version": ALGORITHM}
+
+    def _stats_by_duration(self):
+        out = {}
+        for duration in DURATIONS:
+            entries = [x for x in self.entries
+                       if x.get("duracion_segundos") == duration]
+            wins = sum(x.get("resultado") == "ACIERTO" for x in entries)
+            losses = sum(x.get("resultado") == "FALLO" for x in entries)
+            ties = sum(x.get("resultado") == "EMPATE" for x in entries)
+            n = wins + losses
+            out[str(duration)] = {
+                "hipotesis": len(entries), "aciertos": wins, "fallos": losses,
+                "empates": ties, "no_evaluables":
+                    sum(x.get("resultado") == "NO_EVALUABLE" for x in entries),
+                "tasa_acierto_pct": round(100 * wins/n, 2) if n else None}
+        return out
 
     def tick(self, market, analysis, *, now=None):
         now = now or self.when()
@@ -317,6 +341,7 @@ class NVDADemoService:
                       "hipotesis_activa": deepcopy(x), "ultima_hipotesis":
                       deepcopy(self.entries[-1]) if self.entries else None,
                       "candidato_actual": candidate, "estadisticas": self._stats(),
+                      "estadisticas_por_duracion": self._stats_by_duration(),
                       "operativa_autorizada": False, "modo": "SIMULACION_IEX",
                       "aviso": "SOLO PRUEBA; NO es precio/vencimiento IQ Option. "
                                "Puntuación 0–100 de confluencia NO es probabilidad.",
