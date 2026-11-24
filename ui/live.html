@@ -940,7 +940,7 @@ function paintV5Countdown(){
  }else{
     $('v5demo-countdown').textContent='Resultado pendiente';
  }
- if(remain<=0&&v5DemoEntrySpoken!==item.id){
+ if(remain<=0&&remain>=-1&&v5DemoEntrySpoken!==item.id){
     v5DemoEntrySpoken=item.id;
     sayV5('Entrada simulada ahora. '+(item.direccion==='SUBE'?'Sube':'Baja')+
           '. Duración '+durationV5(item.duracion_segundos)+'. No operar.');
