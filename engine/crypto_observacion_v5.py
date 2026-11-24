@@ -79,6 +79,10 @@ def _base(symbol, now):
             "estado": "ESPERAR", "motivo": "Sin datos evaluables",
             "mercado": "Alpaca Crypto US 24/7", "indicadores": {},
             "calidad": {"apta": False, "motivos": []}, "evaluaciones": {},
+            # Estos campos deben estar presentes INCLUSO si la calidad falla.
+            # La ausencia de un horizonte indica falta de hipótesis, no error de API.
+            "horizonte_reloj_seleccionado": None,
+            "criterio_reloj": "Prioridad técnica 2m, 1m, 5m, 10m; NO es ranking de acierto.",
             "reloj_experimental": {"modo": "SIMULACION", "estado": "ESPERAR",
                 "motivo": "Sin hipótesis verificable", "direccion_experimental": None,
                 "duracion_segundos": None, "entrada_utc": None,
@@ -153,6 +157,8 @@ def analizar_crypto(snapshot, *, ahora_utc):
                             if bars else None)
     if issues:
         result["motivo"] = " | ".join(issues)
+        result["reloj_experimental"]["motivo"] = (
+            "Reloj suspendido por calidad: " + result["motivo"])
         return result
 
     closes = [bar["close"] for bar in bars]
@@ -212,7 +218,6 @@ def analizar_crypto(snapshot, *, ahora_utc):
     prioridad_ensayo = (120, 60, 300, 600)
     selected = next((h for h in prioridad_ensayo
                      if candidates[str(h)]["direccion"] in ("SUBE", "BAJA")), None)
-    result["criterio_reloj"] = "Prioridad técnica 2m, 1m, 5m, 10m; NO es ranking de acierto."
     result["horizonte_reloj_seleccionado"] = selected
     if selected is not None:
         slot = candidates[str(selected)]
