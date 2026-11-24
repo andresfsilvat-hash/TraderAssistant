@@ -55,7 +55,7 @@ select{background:#111a29;color:var(--fg);border:1px solid var(--border);border-
 </div>
 <div class="row" style="margin-top:12px;align-items:flex-start">
 <div style="min-width:170px;flex:1"><div class="label">Calidad de datos</div><div class="value" id="crypto-calidad" style="font-size:17px">Analizando…</div></div>
-<div style="min-width:170px;flex:1"><div class="label">Hipótesis 2 minutos</div><div class="value" id="crypto-direccion" style="font-size:17px">ESPERAR</div></div>
+<div style="min-width:170px;flex:1"><div class="label">Hipótesis elegida para ensayo</div><div class="value" id="crypto-direccion" style="font-size:17px">ESPERAR</div></div>
 <div style="min-width:170px;flex:1"><div class="label">Reloj (solo simulación)</div><div class="value" id="crypto-reloj" style="font-size:17px">ESPERAR</div></div>
 <div style="min-width:170px;flex:1"><div class="label">Entrada hipotética</div><div class="value" id="crypto-entrada" style="font-size:17px">—</div></div>
 </div>
@@ -164,8 +164,11 @@ async function updateCryptoAnalysis(){
    ultimaHipotesisCripto=result;
    const quality=result.calidad||{}, vals=result.indicadores||{};
    $('crypto-calidad').textContent=quality.apta?'DATOS APTOS PARA OBSERVACIÓN':'DATOS INSUFICIENTES';
-   const hypo=(result.evaluaciones||{})['120']||{};
-   $('crypto-direccion').textContent=(hypo.direccion||'ESPERAR')+' · NO VALIDADO';
+   const duracion=Number(result.horizonte_reloj_seleccionado)||null;
+   const hypo=duracion?(result.evaluaciones||{})[String(duracion)]||{}:{};
+   $('crypto-direccion').textContent=duracion?
+      (hypo.direccion||'ESPERAR')+' · '+(duracion/60)+' min · NO VALIDADO':
+      'ESPERAR · SIN HIPÓTESIS';
    const clock=result.reloj_experimental||{};
    $('crypto-entrada').textContent=clock.entrada_utc?when(clock.entrada_utc):'—';
    $('crypto-indicadores').textContent=quality.apta?
