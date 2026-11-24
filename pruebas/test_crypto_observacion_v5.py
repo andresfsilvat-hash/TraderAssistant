@@ -76,6 +76,36 @@ class CryptoObservacionV5Tests(unittest.TestCase):
                          at_start["reloj_experimental"]["entrada_utc"])
         self.assertIsNone(at_count["probabilidad_acierto"])
 
+    def test_sin_calidad_siempre_existe_esquema_y_motivo_reloj(self):
+        data = sample_market()
+        data["status"] = "reconectando"
+        data["last_feed_message_at"] = (T-timedelta(seconds=25)).isoformat()
+        out = analizar_crypto(data, ahora_utc=T)
+        self.assertFalse(out["calidad"]["apta"])
+        self.assertIn("horizonte_reloj_seleccionado", out)
+        self.assertIsNone(out["horizonte_reloj_seleccionado"])
+        self.assertIn("criterio_reloj", out)
+        self.assertIn("suscripción", out["motivo"])
+        self.assertIn("15 s", out["motivo"])
+        self.assertEqual(out["reloj_experimental"]["estado"], "ESPERAR")
+        self.assertIn("Reloj suspendido por calidad:", out["reloj_experimental"]["motivo"])
+        self.assertFalse(out["operativa_autorizada"])
+
+    def test_endpoint_sin_calidad_expone_motivos_en_json(self):
+        data = sample_market()
+        data["candles"] = []
+        app = Flask(__name__)
+        app.testing = True
+        crypto_live.register_crypto_live(app)
+        with patch.object(crypto_live._feed, "start"), \
+             patch.object(crypto_live._feed, "snapshot", return_value=data):
+            response = app.test_client().get("/api/crypto/analisis")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("horizonte_reloj_seleccionado", response.json)
+        self.assertIsNone(response.json["horizonte_reloj_seleccionado"])
+        self.assertEqual(response.json["reloj_experimental"]["estado"], "ESPERAR")
+        self.assertIn("velas", response.json["reloj_experimental"]["motivo"])
+
     def test_bloquea_feed_obsoleto(self):
         data = sample_market()
         data["last_feed_message_at"] = (T-timedelta(seconds=20)).isoformat()
