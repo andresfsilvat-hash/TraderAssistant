@@ -41,7 +41,14 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
 @media(max-width:1100px){.summary{grid-template-columns:1fr 1fr}#chart{height:57vh}}
 @media(max-width:650px){.summary{grid-template-columns:1fr}.stat{min-height:75px}.brand small{display:block;margin:3px 0 0}}
 
-/* V5 demo NATO: panel principal de predicciones OBSERVADAS IEX */
+.v4compare{margin-bottom:8px;border:1px solid var(--edge);border-radius:7px;background:var(--panel2)}
+.v4compare summary{cursor:pointer;color:var(--muted);font-size:11px;padding:7px 11px}
+.v4compare[open] .decisionStrip{margin:3px 8px 8px}
+@media screen and (min-width:1101px) and (min-height:650px){
+ main.content>.v4compare{flex:0 0 auto}
+ main.content>.v4compare[open]{max-height:34vh;overflow:auto}
+}
+/* V5 demo: panel principal de hipótesis de NVIDIA observadas en IEX */
 .v5Demo{background:var(--panel);border:1px solid #43516d;border-radius:8px;margin-bottom:9px;padding:10px 13px}
 .v5DemoHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#d6e8ff;font-size:12px;font-weight:700}
 .v5DemoGrid{display:grid;grid-template-columns:1.1fr 1fr .75fr .7fr 1.25fr;gap:12px;align-items:center;margin-top:9px}
@@ -194,6 +201,8 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
     <div class="v5DemoFoot" id="v5demo-outcome">Todavía no hay hipótesis evaluadas.</div>
     <div class="v5DemoFoot">*Confluencia: concordancia de indicadores, NO probabilidad de ganar. Aciertos: precios medios bid/ask IEX observados, NO resultados ni pagos de IQ Option. Solo simulación.</div>
   </section>
+  <details class="v4compare">
+    <summary>Ver motor conservador anterior V4 (comparación; puede indicar ESPERAR)</summary>
   <!-- BEGIN TA_VISUAL_DECISION_20261118_V1: panel exclusivamente informativo -->
   <section class="decisionStrip" aria-label="Panel de observación; todavía no emite señales de entrada">
     <div class="decisionHeading">Motor estricto anterior V4 · REFERENCIA (puede indicar ESPERAR aunque V5 emita hipótesis) — NO OPERAR</div>
@@ -222,6 +231,7 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
     <div class="decisionReason" id="decision-reason">Esperando la última vela oficial cerrada de 1 minuto. No hay reglas de entrada validadas.</div>
   </section>
   <!-- END TA_VISUAL_DECISION_20261118_V1 -->
+  </details>
   <section class="chartPanel">
     <div class="chartHead">
       <div class="name"><span id="chart-symbol">NVDA</span> <span style="font-weight:400;color:var(--muted)">· precio IEX</span></div>
@@ -876,6 +886,7 @@ if(typeof EventSource!=='undefined') {
 // V5 observación en tiempo real: fuente separada del motor V4 conservador.
 // El cliente solo pinta estados servidor y no inventa precios ni resultados.
 let v5DemoLatest=null;
+let v5DemoLastResponse=0;
 let v5DemoVoice=false;
 let v5DemoEventId=null;
 let v5DemoEntrySpoken=null;
@@ -898,6 +909,10 @@ $('v5demo-voice').addEventListener('click',()=>{
 function paintV5Countdown(){
  const data=v5DemoLatest;
  if(!data)return;
+ if(Date.now()-v5DemoLastResponse>2500){
+   $('v5demo-countdown').textContent='DATOS DETENIDOS';
+   return;
+ }
  const item=data.hipotesis_activa;
  if(!item){
    $('v5demo-countdown').textContent='—';
@@ -929,6 +944,7 @@ function paintV5Countdown(){
 }
 function paintV5Demo(data){
  v5DemoLatest=data;
+ v5DemoLastResponse=Date.now();
  const latest=data.ultima_hipotesis, item=data.hipotesis_activa;
  const candidate=data.candidato_actual||{}, stats=data.estadisticas||{};
  if(activeSymbol!=='NVDA'){
