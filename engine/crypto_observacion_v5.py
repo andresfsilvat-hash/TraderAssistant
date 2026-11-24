@@ -205,12 +205,20 @@ def analizar_crypto(snapshot, *, ahora_utc):
     result["evaluaciones"] = candidates
     result["calidad"]["apta"] = True
     result["motivo"] = "Datos aceptados para observación, sin estrategia validada."
-    # La selección es FIJA para el ensayo de reloj (2m); no anuncia
-    # que ese horizonte es el mejor en términos de aciertos.
-    slot = candidates["120"]
-    if slot["direccion"] in ("SUBE", "BAJA"):
-        result["reloj_experimental"] = _reloj(slot["direccion"], 120, bars[-1], now, receipt)
+    # Prioridad DETERMINISTA PARA ENSAYAR EL RELOJ, no clasificación por
+    # probabilidad ni duración óptima: conservar 2m cuando existe, admitir
+    # 1m si 2m está en ESPERAR; después 5m/10m exclusivamente para prueba.
+    # No genera una oportunidad nueva por refrescar el endpoint HTTP.
+    prioridad_ensayo = (120, 60, 300, 600)
+    selected = next((h for h in prioridad_ensayo
+                     if candidates[str(h)]["direccion"] in ("SUBE", "BAJA")), None)
+    result["criterio_reloj"] = "Prioridad técnica 2m, 1m, 5m, 10m; NO es ranking de acierto."
+    result["horizonte_reloj_seleccionado"] = selected
+    if selected is not None:
+        slot = candidates[str(selected)]
+        result["reloj_experimental"] = _reloj(
+            slot["direccion"], selected, bars[-1], now, receipt)
         result["estado"] = result["reloj_experimental"]["estado"]
     else:
-        result["reloj_experimental"]["motivo"] = slot["justificacion"]
+        result["reloj_experimental"]["motivo"] = "Ningún horizonte reúne condiciones experimentales."
     return result
