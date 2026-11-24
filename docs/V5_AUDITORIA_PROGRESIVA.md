@@ -1,3 +1,11 @@
+## Ronda 12 — Diagnóstico explícito cuando no hay hipótesis cripto (2026-11-24)
+
+El usuario consultó `GET /api/crypto/analisis` y observó `horizonte_reloj_seleccionado` y `criterio_reloj` **en blanco**, y reloj `ESPERAR` con `Sin hipótesis verificable`. Esto ocurre cuando falla alguna comprobación de calidad: la función regresaba antes de añadir esas dos claves, y el reloj mostraba motivo genérico. La captura sola **no revela cuál control falló**; no se debe afirmar que el WebSocket falló sin consultar `calidad.motivos`.
+
+Se revisó el contrato de `engine/crypto_observacion_v5.py`: ahora ambos campos existen en todas las respuestas, con `horizonte_reloj_seleccionado=null` cuando ningún horizonte ha sido seleccionado, y `criterio_reloj` describe la prioridad técnica fija. Si los filtros no pasan, `reloj_experimental.motivo` incluye las causas concretas (`calidad.motivos`) en lugar del texto genérico. No se relajan filtros, no hay señal automática, `operativa_autorizada=false`. Se añadieron pruebas para falta de conexión, recepción obsoleta y velas insuficientes.
+
+Para diagnosticar un resultado real, consultar en la misma ejecución `$a.calidad | ConvertTo-Json -Depth 5`, `$a.motivo`, `$a.reloj_experimental`, y `$m.status`/tiempos de la fuente. Un estado ESPERAR también puede ser legítimo si los datos son aptos pero ninguna regla da SUBE/BAJA.
+
 ## Ronda 11 — Reloj cripto cuando solo 1 minuto tiene hipótesis (2026-11-24)
 
 Observación recibida en BTC/USD con datos aptos: `60: SUBE`, `120/300/600: ESPERAR` por falta de confirmación de pendiente SMA20. La API devolvía reloj `ESPERAR` porque estaba fijado a 120s, aunque 60s había dado una **hipótesis experimental**.
