@@ -1,3 +1,15 @@
+## Ronda 16 — Vencimiento fijado exclusivamente por el usuario (2026-11-26)
+
+Tras el incidente de señales solapadas, el usuario precisó que **no quiere que el algoritmo elija el vencimiento**. Desea configurarlo manualmente en TraderAssistant, con las mismas opciones mostradas en IQ Option: `30 s`, `45 s`, `1 min`, `2 min`, `3 min`, `5 min`. El sistema seguirá calculando **SUBE/BAJA** y el aviso previo de 10 segundos; **el período de vencimiento proviene siempre de la elección del usuario**, no de la fuerza de confluencia. El análisis de confluencia sigue como dato explicativo, sin representar probabilidades.
+
+Implementación: `proponer_hipotesis` ya no asigna `duracion_segundos` (devuelve `null`). `NVDADemoService.configurar_vencimiento(segundos)` valida un entero exacto de `(30,45,60,120,180,300)`; persiste la opción en el mismo JSON local `Documents/TraderAssistant/registro_nvda_v5.json`, bajo `vencimiento_seleccionado_segundos` y compatible con el formato anterior. Antes de la primera selección, el motor no genera avisos, aunque haya dirección experimental. La configuración se lee automáticamente tras reiniciar. Se añade `POST /api/v5/demo/vencimiento` con `{"vencimiento_segundos":120}`; `GET /api/v5/demo` muestra `vencimiento_seleccionado_segundos`, `opciones_vencimiento_segundos` y `modo_vencimiento=SELECCION_MANUAL_USUARIO`.
+
+La interfaz en `/live` añade un selector arriba de la cuenta regresiva, e informa cuando la configuración está guardada. Si el usuario cambia de 2 min a 30 s **durante** una simulación en curso, esa operación conserva **2 min** hasta su vencimiento original, aunque IEX la haya marcado NO_EVALUABLE; los 30 s se aplican únicamente a la **siguiente** hipótesis elegible después del vencimiento y pausa de revisión de 5 s. No se cancela ni se reinicia la cuenta ni se reescriben registros anteriores.
+
+Tests: sin selección no crea entrada; validación de todos los períodos, rechazo de tipos y valores ajenos a opciones; persistencia tras reinicio; HTTP POST; cambio durante 2 min sin modificar fecha de vencimiento; prueba previa sin segunda cuenta regresiva antes de 2 min. Se conserva `600` segundos solamente en estadísticas históricas para registros previos, no en el nuevo selector.
+
+**Limitación material:** La selección manual sincroniza el vencimiento teórico, pero IQ Option no envía a TraderAssistant la marca horaria del clic. Si se pulsa SUBE/BAJA tarde, el vencimiento REAL no coincide exactamente con el previsto por la app. Las estadísticas automáticas siguen siendo simulaciones basadas en puntos medios IEX, no confirmaciones de IQ Option ni operaciones automáticas.
+
 ## Ronda 15 — Bloqueo obligatorio de nuevas entradas durante el vencimiento (2026-11-26)
 
 **Error observado por el usuario:** abrió SUBE en el segundo 0 de un aviso de 10s, con vencimiento 2m en IQ Option; ANTES de terminar esos 2m la aplicación anunció otra entrada SUBE con vencimiento de 30s. Esto es incoherente con el objetivo de ensayar una hipótesis a la vez.
