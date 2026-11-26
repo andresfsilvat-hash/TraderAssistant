@@ -1,3 +1,17 @@
+## Ronda 15 — Bloqueo obligatorio de nuevas entradas durante el vencimiento (2026-11-26)
+
+**Error observado por el usuario:** abrió SUBE en el segundo 0 de un aviso de 10s, con vencimiento 2m en IQ Option; ANTES de terminar esos 2m la aplicación anunció otra entrada SUBE con vencimiento de 30s. Esto es incoherente con el objetivo de ensayar una hipótesis a la vez.
+
+**Causa plausible identificada:** `NVDADemoService._advance` puede dar por concluida anticipadamente la simulación como `NO_EVALUABLE` cuando falta una cotización IEX dentro de los 6s desde la entrada. Entonces `self.current=None`, y con una nueva vela 1m, `tick()` generaba otra alerta, sin esperar el vencimiento anterior. No sabemos si fue exactamente lo que ocurrió en la sesión del usuario sin analizar el historial de su equipo.
+
+**Corrección aplicada** en `nvda_demo_v5.py`: `_bloqueo_vencimiento(now)` obtiene el vencimiento original persistido de la última hipótesis (no depende de `self.current` ni del estado de cotizaciones), y bloquea nuevas señales hasta ese vencimiento + 5 segundos de revisión. El bloqueo persiste incluso si el resultado pasa a `NO_EVALUABLE`, falla la conexión o se reinicia el programa. `GET /api/v5/demo` expone `bloqueo_vencimiento` con `hasta_utc`, `liberar_nueva_senal_utc`, `segundos_hasta_vencimiento`, `segundos_hasta_nueva_senal`, `fase`, `direccion`, `duracion_segundos` y `resultado`. Si la hipótesis no está activa pero su vencimiento aún no termina, el estado es `ESPERANDO_VENCIMIENTO` y **no hay** `segundos_para_entrada`.
+
+La UI NVIDIA muestra `SIN NUEVA ENTRADA · VENCIMIENTO ACTIVO` y mantiene el reloj de vencimiento restante. Solo después del vencimiento y revisión puede comenzar un aviso nuevo de 10 segundos, en caso de haber nuevos datos y una hipótesis diferente. No se cambió el motor de dirección ni sus pesos; no hay órdenes automáticas.
+
+Tests específicos nuevos reproducen 120s SUBE + primera cotización no evaluable + nuevo candidato 30s antes de vencimiento; comprueban que no emita segundo aviso durante toda la ventana, tampoco tras reinicio, y que solo lo haga al terminar +5s. También comprueban una operación con entrada observada y salida normal sin solapamiento.
+
+**Límite importante:** el instante de clic real en IQ Option no es conocido por el programa, por lo que el bloqueo cubre el vencimiento desde la entrada SIMULADA (conteo a 0). Si el usuario hace clic tarde o el producto tiene otro esquema de expiración, el reloj de IQ Option puede diferir. Habría que registrar manualmente el clic real para sincronizar exactamente el bloqueo con IQ Option, sin acceso a la plataforma.
+
 ## Ronda 14 — Separación estricta: cuenta antes de entrar vs. vencimiento de IQ Option (2026-11-26)
 
 El usuario compartió una captura de IQ Option mostrando tiempos de **vencimiento** 30s, 45s, 1m, 2m, 3m y 5m. Aclaró que el aviso de entrada de 10 segundos pertenece exclusivamente a TraderAssistant; tras pulsar SUBE/BAJA, se espera el tiempo de vencimiento seleccionado para saber si acertó. **No se deben sumar los 10 segundos al vencimiento de la plataforma.**
