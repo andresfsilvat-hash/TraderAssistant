@@ -23,6 +23,8 @@ DATA_FILE = Path.home() / "Documents" / "TraderAssistant" / "registro_nvda_v5.js
 DURATIONS = (30, 45, 60, 120, 180, 300, 600)
 ENTRY_DELAY_SECONDS = 10
 OBSERVATION_GRACE_SECONDS = 6
+# Pequeña pausa de revisión tras el vencimiento, antes de otra alerta.
+REVIEW_DELAY_SECONDS = 5
 CANDLE_MAX_AGE_SECONDS = 150
 QUOTE_MAX_AGE_SECONDS = 4
 ALGORITHM = "demo-confluencia-nvda-v5-1"
@@ -208,6 +210,35 @@ class NVDADemoService:
                        encoding="utf-8")
         os.replace(tmp, self.path)
 
+    def _bloqueo_vencimiento(self, now):
+        """No solapar hipótesis, incluso tras falta de tick o reinicio.
+
+        El vencimiento original es la referencia inmutable. Un resultado
+        NO_EVALUABLE no equivale al fin del vencimiento elegido en IQ Option.
+        """
+        if not self.entries:
+            return None
+        last = self.entries[-1]
+        expiry = _parse(last.get("vencimiento_utc"))
+        if expiry is None:
+            return None
+        release = expiry + timedelta(seconds=REVIEW_DELAY_SECONDS)
+        if now >= release:
+            return None
+        remaining_expiry = max(0, math.ceil((expiry-now).total_seconds()))
+        return {
+            "hasta_utc": _ts(expiry),
+            "liberar_nueva_senal_utc": _ts(release),
+            "segundos_hasta_vencimiento": remaining_expiry,
+            "segundos_hasta_nueva_senal": max(1, math.ceil((release-now).total_seconds())),
+            "fase": "ESPERANDO_VENCIMIENTO" if now < expiry else "REVISION",
+            "direccion": last.get("direccion"),
+            "duracion_segundos": last.get("duracion_segundos"),
+            "resultado": last.get("resultado"),
+            "motivo": "No se emite otra cuenta regresiva antes del vencimiento anterior, "
+                      "aunque falte la cotización y se marque NO_EVALUABLE.",
+        }
+
     def _create(self, candidate, now):
         target = now + timedelta(seconds=ENTRY_DELAY_SECONDS)
         # La cuenta para entrar termina EN target. El vencimiento arranca
@@ -326,13 +357,21 @@ class NVDADemoService:
         with self.lock:
             market, analysis = market or {}, analysis or {}
             self._advance(market, now)
+            bloqueo = self._bloqueo_vencimiento(now)
+            # Una vela nueva puede dar otra dirección/duración, pero no abre
+            # segunda alerta mientras el vencimiento anterior siga vigente.
             candidate = proponer_hipotesis(market, analysis, ahora_utc=now)
-            if (self.current is None and candidate.get("disponible") and
+            if (self.current is None and bloqueo is None and
+                    candidate.get("disponible") and
                     candidate["vela_id"] != self.last_candle_id):
                 self._create(candidate, now)
+            bloqueo = self._bloqueo_vencimiento(now)
             x = self.current
             state = "ESPERAR"
             remaining = None
+            if x is None and bloqueo is not None:
+                state = ("ESPERANDO_VENCIMIENTO" if bloqueo["fase"] == "ESPERANDO_VENCIMIENTO"
+                         else "REVISION_RESULTADO")
             if x is not None:
                 start = _parse(x["entrada_programada_utc"])
                 expiry = _parse(x["vencimiento_utc"])
@@ -347,6 +386,7 @@ class NVDADemoService:
                 else:
                     state = "EVALUANDO"
             result = {"estado": state, "segundos_para_entrada": remaining,
+                      "bloqueo_vencimiento": deepcopy(bloqueo),
                       "hipotesis_activa": deepcopy(x), "ultima_hipotesis":
                       deepcopy(self.entries[-1]) if self.entries else None,
                       "candidato_actual": candidate, "estadisticas": self._stats(),
