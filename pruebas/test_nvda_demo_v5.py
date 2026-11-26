@@ -300,6 +300,11 @@ class DemoNVDAEngineTests(unittest.TestCase):
         expiry = x["vencimiento_utc"]
         config = self.demo.configurar_vencimiento(30)
         self.assertEqual(config["vencimiento_seleccionado_segundos"], 30)
+        # Registrar una cotización auténtica en el instante de entrada;
+        # sin ella el seguimiento se clasificaría NO_EVALUABLE, pero aun
+        # así el bloqueo del vencimiento seguiría vigente.
+        entered = T+timedelta(seconds=10)
+        self.demo.tick(market(entered), analysis(), now=entered)
         ongoing = self.demo.tick(market(T+timedelta(seconds=20)), analysis(),
                                  now=T+timedelta(seconds=20))
         self.assertEqual(ongoing["hipotesis_activa"]["duracion_segundos"], 120)
