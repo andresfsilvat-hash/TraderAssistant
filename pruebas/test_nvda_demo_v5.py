@@ -158,6 +158,99 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(result["ultima_hipotesis"]["resultado"], "NO_EVALUABLE")
         self.assertIsNone(result["estadisticas"]["tasa_acierto_pct"])
 
+    def test_no_repite_alerta_30s_mientras_sigue_vencimiento_2min(self):
+        """Caso reportado: 2min SUBE, sin cotización de entrada, nueva 30s SUBE."""
+        first_candidate = {"disponible": True, "vela_id": BAR, "direccion": "SUBE",
+                           "duracion_segundos": 120, "puntaje_concordancia": 80,
+                           "evidencias": [], "peso_favor": 8, "peso_contra": 2}
+        second_candidate = {"disponible": True, "vela_id": BAR + 60, "direccion": "SUBE",
+                            "duracion_segundos": 30, "puntaje_concordancia": 51,
+                            "evidencias": [], "peso_favor": 5, "peso_contra": 5}
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=first_candidate):
+            first = self.demo.tick(market(), analysis(), now=T)
+        self.assertEqual(first["segundos_para_entrada"], 10)
+        self.assertEqual(first["hipotesis_activa"]["duracion_segundos"], 120)
+        original_id = first["hipotesis_activa"]["id"]
+        original_expiry = T + timedelta(seconds=130)
+
+        # El feed falla después del clic hipotético. Antes, el motor marcaba
+        # NO_EVALUABLE y permitía otro aviso sobre la siguiente vela de 1m.
+        failed_quote = T + timedelta(seconds=18)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=second_candidate):
+            interim = self.demo.tick(
+                market(failed_quote, quote_at=T, receipt_at=T),
+                analysis(), now=failed_quote)
+        self.assertEqual(interim["ultima_hipotesis"]["resultado"], "NO_EVALUABLE")
+        self.assertIsNone(interim["hipotesis_activa"])
+        self.assertEqual(interim["estado"], "ESPERANDO_VENCIMIENTO")
+        self.assertIsNone(interim["segundos_para_entrada"])
+        self.assertEqual(interim["bloqueo_vencimiento"]["direccion"], "SUBE")
+        self.assertEqual(interim["bloqueo_vencimiento"]["duracion_segundos"], 120)
+        self.assertEqual(interim["bloqueo_vencimiento"]["hasta_utc"], original_expiry.isoformat())
+
+        for seconds in (30, 60, 90, 119, 129, 130, 134):
+            at = T + timedelta(seconds=seconds)
+            with self.subTest(at=at), patch(
+                    "nvda_demo_v5.proponer_hipotesis", return_value=second_candidate):
+                current = self.demo.tick(market(at), analysis(), now=at)
+                self.assertIsNone(current["hipotesis_activa"])
+                self.assertIsNone(current["segundos_para_entrada"])
+                self.assertEqual(current["estadisticas"]["total_hipotesis"], 1)
+                self.assertEqual(current["ultima_hipotesis"]["id"], original_id)
+                self.assertIsNotNone(current["bloqueo_vencimiento"])
+
+        # Solo después de vencer y dejar 5 segundos de revisión puede abrirse
+        # la segunda hipótesis, con nueva cuenta completa de 10 segundos.
+        allowed = T + timedelta(seconds=135)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=second_candidate):
+            next_signal = self.demo.tick(market(allowed), analysis(), now=allowed)
+        self.assertEqual(next_signal["segundos_para_entrada"], 10)
+        self.assertEqual(next_signal["hipotesis_activa"]["duracion_segundos"], 30)
+        self.assertEqual(next_signal["estadisticas"]["total_hipotesis"], 2)
+        self.assertNotEqual(next_signal["hipotesis_activa"]["id"], original_id)
+
+    def test_reinicio_no_levanta_bloqueo_de_vencimiento_original(self):
+        first_candidate = {"disponible": True, "vela_id": BAR, "direccion": "BAJA",
+                           "duracion_segundos": 120, "puntaje_concordancia": 76,
+                           "evidencias": [], "peso_favor": 7, "peso_contra": 3}
+        second_candidate = dict(first_candidate, vela_id=BAR+60, duracion_segundos=30)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=first_candidate):
+            self.demo.tick(market(), analysis(), now=T)
+        resumed = NVDADemoService(path=self.path)
+        t_plus_60 = T + timedelta(seconds=60)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=second_candidate):
+            result = resumed.tick(market(t_plus_60), analysis(), now=t_plus_60)
+        self.assertEqual(result["estado"], "ESPERANDO_VENCIMIENTO")
+        self.assertEqual(result["estadisticas"]["total_hipotesis"], 1)
+        self.assertIsNone(result["hipotesis_activa"])
+        self.assertEqual(result["ultima_hipotesis"]["resultado"], "NO_EVALUABLE")
+        self.assertEqual(result["bloqueo_vencimiento"]["duracion_segundos"], 120)
+        self.assertFalse(result["operativa_autorizada"])
+
+    def test_resultado_temprano_no_libera_antes_del_vencimiento(self):
+        candidate = {"disponible": True, "vela_id": BAR, "direccion": "SUBE",
+                     "duracion_segundos": 120, "puntaje_concordancia": 80,
+                     "evidencias": [], "peso_favor": 8, "peso_contra": 2}
+        new_candidate = dict(candidate, vela_id=BAR+60, duracion_segundos=30)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=candidate):
+            self.demo.tick(market(), analysis(), now=T)
+        entered = T + timedelta(seconds=10)
+        self.demo.tick(market(entered), analysis(), now=entered)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=new_candidate):
+            for seconds in (40, 80, 120):
+                at = T + timedelta(seconds=seconds)
+                result = self.demo.tick(market(at), analysis(), now=at)
+                self.assertEqual(result["estado"], "EN_SEGUIMIENTO")
+                self.assertEqual(result["hipotesis_activa"]["duracion_segundos"], 120)
+                self.assertEqual(result["estadisticas"]["total_hipotesis"], 1)
+        expired = T + timedelta(seconds=130)
+        with patch("nvda_demo_v5.proponer_hipotesis", return_value=new_candidate):
+            result = self.demo.tick(market(expired, price=151.8), analysis(), now=expired)
+        self.assertEqual(result["ultima_hipotesis"]["resultado"], "ACIERTO")
+        self.assertEqual(result["estado"], "REVISION_RESULTADO")
+        self.assertIsNone(result["hipotesis_activa"])
+        self.assertEqual(result["estadisticas"]["total_hipotesis"], 1)
+
     def test_no_synthetic_market_or_historical_signal(self):
         self.assertFalse(proponer_hipotesis(market(is_open=False), analysis(),
                                             ahora_utc=T)["disponible"])
