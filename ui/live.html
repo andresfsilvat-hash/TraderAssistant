@@ -921,8 +921,17 @@ function paintV5Countdown(){
  }
  const item=data.hipotesis_activa;
  if(!item){
-   $('v5demo-countdown').textContent='—';
-   $('v5demo-expiry-countdown').textContent='—';
+   const lock=data.bloqueo_vencimiento;
+   $('v5demo-countdown').textContent=lock?'SIN NUEVA ENTRADA':'—';
+   if(lock){
+     const left=Date.parse(lock.hasta_utc)-Date.now();
+     $('v5demo-expiry-countdown').textContent=left>0?
+       Math.ceil(left/1000)+' s':'REVISIÓN';
+     $('v5demo-direction').textContent=lock.fase==='ESPERANDO_VENCIMIENTO'?
+       'ESPERANDO VENCIMIENTO':'REVISANDO RESULTADO';
+   }else{
+     $('v5demo-expiry-countdown').textContent='—';
+   }
    return;
  }
  const at=Date.parse(item.entrada_programada_utc||'');
@@ -962,6 +971,7 @@ function paintV5Demo(data){
  v5DemoLatest=data;
  v5DemoLastResponse=Date.now();
  const latest=data.ultima_hipotesis, item=data.hipotesis_activa;
+ const lock=data.bloqueo_vencimiento||null;
  const candidate=data.candidato_actual||{}, stats=data.estadisticas||{};
  if(activeSymbol!=='NVDA'){
    $('v5demo-direction').textContent='SOLO NVIDIA';
@@ -972,7 +982,8 @@ function paintV5Demo(data){
    $('v5demo-evidence').textContent='Este ensayo no utiliza los demás activos.';
    return;
  }
- $('v5demo-duration').textContent=item?durationV5(item.duracion_segundos):'—';
+ $('v5demo-duration').textContent=item?durationV5(item.duracion_segundos):
+   lock?durationV5(lock.duracion_segundos):'—';
  $('v5demo-strength').textContent=item?item.puntaje_concordancia+' / 100':'—';
  $('v5demo-accuracy').textContent=stats.tasa_acierto_pct===null||stats.tasa_acierto_pct===undefined?
    'Sin muestra':stats.tasa_acierto_pct+' % ('+stats.aciertos+'/'+(stats.aciertos+stats.fallos)+')';
@@ -1008,8 +1019,19 @@ function paintV5Demo(data){
    paintV5Countdown();
  }else{
    $('v5demo-direction').className='v5DemoValue';
-   $('v5demo-direction').textContent='ESPERAR · SIN ENTRADA';
-   $('v5demo-evidence').textContent=candidate.motivo||'Aguardando próxima hipótesis.';
+   $('v5demo-strength').textContent='—';
+   if(lock){
+     $('v5demo-direction').textContent='SIN NUEVA ENTRADA · VENCIMIENTO ACTIVO';
+     $('v5demo-evidence').textContent='La hipótesis anterior ('+lock.direccion+
+       ', '+durationV5(lock.duracion_segundos)+
+       ') mantiene bloqueadas otras entradas hasta finalizar su vencimiento. '+
+       'Estado IEX de la última prueba: '+lock.resultado+
+       '. Se deja una pausa de 5 segundos para revisión.';
+   }else{
+     $('v5demo-direction').textContent='ESPERAR · SIN ENTRADA';
+     $('v5demo-evidence').textContent=candidate.motivo||'Aguardando próxima hipótesis.';
+   }
+   paintV5Countdown();
  }
 }
 async function updateV5Demo(){
