@@ -57,6 +57,9 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
 .v5DemoValue.bull{color:var(--green)}.v5DemoValue.bear{color:var(--red)}
 .v5DemoFoot{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.35}
 .v5DemoControl{font-size:11px;padding:5px 9px}
+.v5DemoExpiry{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;font-weight:500}
+.v5DemoExpiry select{background:#101522;border:1px solid var(--edge);border-radius:5px;color:var(--text);padding:6px 8px;font:inherit;cursor:pointer}
+.v5DemoExpiry select:disabled{opacity:.65;cursor:wait}
 #v5demo-evidence{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:950px){.v5DemoGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}}
 @media(max-width:550px){.v5DemoGrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v5demo-evidence{white-space:normal}}
@@ -188,8 +191,20 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
   <section class="v5Demo" aria-label="V5 Demostración NVIDIA; señales no validadas">
     <div class="v5DemoHead">
       <span>V5 · NVIDIA · AVISOS DE PRUEBA EN TIEMPO REAL — NO OPERAR</span>
+      <label class="v5DemoExpiry" for="v5demo-expiry-select">Elige vencimiento (como en IQ Option):
+        <select id="v5demo-expiry-select" aria-label="Elegir duración del vencimiento">
+          <option value="">Seleccionar…</option>
+          <option value="30">30 segundos</option>
+          <option value="45">45 segundos</option>
+          <option value="60">1 minuto</option>
+          <option value="120">2 minutos</option>
+          <option value="180">3 minutos</option>
+          <option value="300">5 minutos</option>
+        </select>
+      </label>
       <button class="v5DemoControl" id="v5demo-voice" type="button" aria-pressed="false">Avisos de voz: OFF</button>
     </div>
+    <div class="v5DemoFoot" id="v5demo-config-status">Elige cuánto debe durar la hipótesis. La aplicación decidirá SUBE/BAJA y dará 10 segundos para prepararte.</div>
     <div class="v5DemoGrid">
       <div><div class="v5DemoKey">Aviso experimental</div><div class="v5DemoValue" id="v5demo-direction">ESPERAR</div></div>
       <div><div class="v5DemoKey">Cuenta previa para entrar</div><div class="v5DemoValue" id="v5demo-countdown">—</div></div>
@@ -893,6 +908,8 @@ let v5DemoVoice=false;
 let v5DemoEventId=null;
 let v5DemoEntrySpoken=null;
 let v5DemoPending=false;
+let v5DemoConfigPending=false;
+let v5DemoChosenExpiry=null;
 function durationV5(seconds){
  return Number(seconds)<60?Number(seconds)+' segundos':(Number(seconds)/60)+' minutos';
 }
@@ -970,6 +987,15 @@ function paintV5Countdown(){
 function paintV5Demo(data){
  v5DemoLatest=data;
  v5DemoLastResponse=Date.now();
+ const configured=data.vencimiento_seleccionado_segundos;
+ if(!v5DemoConfigPending){
+   v5DemoChosenExpiry=Number.isInteger(configured)?configured:null;
+   $('v5demo-expiry-select').value=v5DemoChosenExpiry===null?'':String(v5DemoChosenExpiry);
+   $('v5demo-config-status').textContent=v5DemoChosenExpiry===null?
+     'Elige un vencimiento para que V5 inicie las señales experimentales. No hay uno asignado automáticamente.':
+     'Vencimiento elegido: '+durationV5(v5DemoChosenExpiry)+
+     '. La nueva selección se aplica a la próxima entrada, sin modificar la que esté en curso.';
+ }
  const latest=data.ultima_hipotesis, item=data.hipotesis_activa;
  const lock=data.bloqueo_vencimiento||null;
  const candidate=data.candidato_actual||{}, stats=data.estadisticas||{};
@@ -1044,6 +1070,36 @@ async function updateV5Demo(){
  }catch(e){$('v5demo-evidence').textContent='No se pudo consultar la demostración V5: '+(e.message||e);}
  finally{v5DemoPending=false;}
 }
+$('v5demo-expiry-select').addEventListener('change',async event=>{
+ const dropdown=event.target;
+ const picked=Number(dropdown.value);
+ if(!dropdown.value || ![30,45,60,120,180,300].includes(picked)){
+   dropdown.value=v5DemoChosenExpiry===null?'':String(v5DemoChosenExpiry);
+   return;
+ }
+ v5DemoConfigPending=true;
+ dropdown.disabled=true;
+ $('v5demo-config-status').textContent='Guardando vencimiento elegido…';
+ try{
+   const response=await fetch('/api/v5/demo/vencimiento',{
+     method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({vencimiento_segundos:picked})
+   });
+   if(!response.ok)throw new Error('HTTP '+response.status);
+   const saved=await response.json();
+   if(saved.vencimiento_seleccionado_segundos!==picked)throw new Error('Valor confirmado diferente');
+   v5DemoChosenExpiry=picked;
+   $('v5demo-config-status').textContent='Guardado: '+durationV5(picked)+
+      ' para la siguiente entrada. La hipótesis actual, si existe, conserva su vencimiento.';
+ }catch(error){
+   dropdown.value=v5DemoChosenExpiry===null?'':String(v5DemoChosenExpiry);
+   $('v5demo-config-status').textContent='No se pudo guardar el vencimiento: '+
+      String(error.message||error);
+ }finally{
+   v5DemoConfigPending=false;
+   dropdown.disabled=false;
+ }
+});
 fetchSnapshot();
 fetchSimulation();
 paintDecisionClock();
