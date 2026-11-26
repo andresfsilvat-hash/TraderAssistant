@@ -16,18 +16,20 @@ from pathlib import Path
 import threading
 import uuid
 
-from flask import jsonify
+from flask import jsonify, request
 
 # Fuera del repositorio: git stash/pull nunca borra el histórico de hipótesis.
 DATA_FILE = Path.home() / "Documents" / "TraderAssistant" / "registro_nvda_v5.json"
+# 600s se conserva para estadísticas históricas, pero no aparece en la imagen IQ Option.
 DURATIONS = (30, 45, 60, 120, 180, 300, 600)
+VENCIMIENTOS_SELECCIONABLES = (30, 45, 60, 120, 180, 300)
 ENTRY_DELAY_SECONDS = 10
 OBSERVATION_GRACE_SECONDS = 6
 # Pequeña pausa de revisión tras el vencimiento, antes de otra alerta.
 REVIEW_DELAY_SECONDS = 5
 CANDLE_MAX_AGE_SECONDS = 150
 QUOTE_MAX_AGE_SECONDS = 4
-ALGORITHM = "demo-confluencia-nvda-v5-1"
+ALGORITHM = "demo-confluencia-nvda-v5-2-manual-expiry"
 
 
 def _parse(value):
@@ -156,18 +158,10 @@ def proponer_hipotesis(market, analysis, *, ahora_utc):
     contra = total - in_favor
     strength = round(100 * in_favor / total) if total else 0
 
-    # Política de duraciones REPRODUCIBLE, no entrenada ni calibrada.
-    # Mayor concordancia => se ensaya horizonte más largo. NO es ranking
-    # optimizado de duración ni tiene respaldo estadístico. Toda duración es
-    # hipótesis causal prospectiva que contrastaremos después con datos IEX.
-    duration = (600 if strength >= 98 else
-                300 if strength >= 93 else
-                180 if strength >= 85 else
-                120 if strength >= 75 else
-                60 if strength >= 65 else
-                45 if strength >= 55 else 30)
+    # El motor decide SOLO la dirección. El vencimiento lo asigna el
+    # usuario antes de la entrada, copiándolo de la configuración persistida.
     return {"disponible": True, "motivo": "Hipótesis mecánica para medir, no validada.",
-            "direccion": direction, "duracion_segundos": duration,
+            "direccion": direction, "duracion_segundos": None,
             "puntaje_concordancia": strength, "peso_favor": in_favor,
             "peso_contra": contra, "evidencias": evidence,
             "vela_id": int(bar["time"]), "version": ALGORITHM,
@@ -182,6 +176,8 @@ class NVDADemoService:
         self.entries = []
         self.current = None
         self.last_candle_id = None
+        # Sin vencimiento inicial: el usuario debe seleccionarlo explícitamente.
+        self.vencimiento_seleccionado_segundos = None
         self._load()
 
     def _load(self):
@@ -192,6 +188,9 @@ class NVDADemoService:
             if raw.get("schema") != 1 or not isinstance(raw.get("entries"), list):
                 return
             self.entries = [x for x in raw["entries"] if isinstance(x, dict)][-1000:]
+            selected = raw.get("vencimiento_seleccionado_segundos")
+            if type(selected) is int and selected in VENCIMIENTOS_SELECCIONABLES:
+                self.vencimiento_seleccionado_segundos = selected
             # No fabricar entradas/resultados que habrían ocurrido mientras el PC estaba apagado.
             for x in self.entries:
                 if x.get("resultado") == "PENDIENTE":
@@ -204,11 +203,26 @@ class NVDADemoService:
 
     def _save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        state = {"schema": 1, "entries": self.entries[-1000:]}
+        state = {"schema": 1, "entries": self.entries[-1000:],
+                 "vencimiento_seleccionado_segundos": self.vencimiento_seleccionado_segundos}
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2, allow_nan=False),
                        encoding="utf-8")
         os.replace(tmp, self.path)
+
+    def configurar_vencimiento(self, segundos):
+        # Rechazar floats, strings y bool: solo los valores del selector IQ.
+        if type(segundos) is not int or segundos not in VENCIMIENTOS_SELECCIONABLES:
+            raise ValueError("Selecciona 30 s, 45 s, 1 min, 2 min, 3 min o 5 min.")
+        with self.lock:
+            self.vencimiento_seleccionado_segundos = segundos
+            self._save()
+            return {
+                "vencimiento_seleccionado_segundos": segundos,
+                "opciones_vencimiento_segundos": list(VENCIMIENTOS_SELECCIONABLES),
+                "aplica_desde": "SIGUIENTE_HIPOTESIS",
+                "aviso": "No cambia el vencimiento de una hipótesis en curso.",
+            }
 
     def _bloqueo_vencimiento(self, now):
         """No solapar hipótesis, incluso tras falta de tick o reinicio.
@@ -254,6 +268,7 @@ class NVDADemoService:
             "tiempo_vencimiento_segundos": candidate["duracion_segundos"],
             "direccion": candidate["direccion"],
             "duracion_segundos": candidate["duracion_segundos"],
+            "origen_vencimiento": "SELECCION_MANUAL_USUARIO",
             "puntaje_concordancia": candidate["puntaje_concordancia"],
             "evidencias": deepcopy(candidate["evidencias"]),
             "peso_favor": candidate["peso_favor"], "peso_contra": candidate["peso_contra"],
@@ -361,10 +376,16 @@ class NVDADemoService:
             # Una vela nueva puede dar otra dirección/duración, pero no abre
             # segunda alerta mientras el vencimiento anterior siga vigente.
             candidate = proponer_hipotesis(market, analysis, ahora_utc=now)
-            if (self.current is None and bloqueo is None and
+            selected = self.vencimiento_seleccionado_segundos
+            if selected is None and candidate.get("disponible"):
+                candidate = dict(candidate, disponible=False,
+                                 motivo="Selecciona primero el vencimiento en el panel NVIDIA.",
+                                 duracion_segundos=None)
+            if (self.current is None and bloqueo is None and selected is not None and
                     candidate.get("disponible") and
                     candidate["vela_id"] != self.last_candle_id):
-                self._create(candidate, now)
+                fixed_candidate = dict(candidate, duracion_segundos=selected)
+                self._create(fixed_candidate, now)
             bloqueo = self._bloqueo_vencimiento(now)
             x = self.current
             state = "ESPERAR"
@@ -387,6 +408,9 @@ class NVDADemoService:
                     state = "EVALUANDO"
             result = {"estado": state, "segundos_para_entrada": remaining,
                       "bloqueo_vencimiento": deepcopy(bloqueo),
+                      "vencimiento_seleccionado_segundos": selected,
+                      "opciones_vencimiento_segundos": list(VENCIMIENTOS_SELECCIONABLES),
+                      "modo_vencimiento": "SELECCION_MANUAL_USUARIO",
                       "hipotesis_activa": deepcopy(x), "ultima_hipotesis":
                       deepcopy(self.entries[-1]) if self.entries else None,
                       "candidato_actual": candidate, "estadisticas": self._stats(),
@@ -415,5 +439,17 @@ def register_nvda_demo_v5(app, *, service=None, feed=None, analysis_service=None
         actual_analysis = analysis_service or app.extensions["live_analysis"]
         result = service.tick(feed.snapshot(), actual_analysis.snapshot())
         response = jsonify(result)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.route("/api/v5/demo/vencimiento", methods=["POST"])
+    def nvda_demo_set_expiry():
+        payload = request.get_json(silent=True)
+        requested = payload.get("vencimiento_segundos") if isinstance(payload, dict) else None
+        try:
+            config = service.configurar_vencimiento(requested)
+        except ValueError:
+            return jsonify({"error": "Vencimiento inválido. Selecciona 30, 45, 60, 120, 180 o 300 segundos."}), 400
+        response = jsonify({"status": "ok", **config})
         response.headers["Cache-Control"] = "no-store"
         return response
