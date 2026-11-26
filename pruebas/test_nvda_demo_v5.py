@@ -66,6 +66,11 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(first["segundos_para_entrada"], 10)
         self.assertEqual(x["direccion"], "SUBE")
         self.assertEqual(x["entrada_programada_utc"], (T+timedelta(seconds=10)).isoformat())
+        self.assertEqual(x["espera_entrada_segundos"], 10)
+        self.assertEqual(x["inicio_vencimiento_utc"], x["entrada_programada_utc"])
+        self.assertEqual(x["tiempo_vencimiento_segundos"], x["duracion_segundos"])
+        self.assertEqual(x["vencimiento_utc"],
+                         (T+timedelta(seconds=10+x["duracion_segundos"])).isoformat())
         self.assertFalse(first["operativa_autorizada"])
         for i in (1, 2, 5, 9):
             out = self.demo.tick(market(T+timedelta(seconds=i)), analysis(),
@@ -96,6 +101,38 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertIn("bid_entrada", final["ultima_hipotesis"])
         self.assertIn("ask_salida", final["ultima_hipotesis"])
         self.assertIn("NO es operación IQ Option", final["ultima_hipotesis"]["motivo_resultado"])
+
+    def test_vencimiento_30_45_180_empieza_despues_del_conteo(self):
+        for expiry_seconds in (30, 45, 180):
+            with self.subTest(expiry_seconds=expiry_seconds):
+                instance = NVDADemoService(
+                    path=Path(self.tmp.name)/f"test_{expiry_seconds}.json")
+                candidate = {"disponible": True, "vela_id": BAR, "direccion": "SUBE",
+                             "duracion_segundos": expiry_seconds, "puntaje_concordancia": 63,
+                             "evidencias": [], "peso_favor": 4, "peso_contra": 3}
+                with patch("nvda_demo_v5.proponer_hipotesis", return_value=candidate):
+                    first = instance.tick(market(), analysis(), now=T)
+                    x = first["hipotesis_activa"]
+                    self.assertEqual(first["segundos_para_entrada"], 10)
+                    self.assertEqual(x["entrada_programada_utc"],
+                                     (T+timedelta(seconds=10)).isoformat())
+                    self.assertEqual(x["inicio_vencimiento_utc"],
+                                     x["entrada_programada_utc"])
+                    end = T+timedelta(seconds=10+expiry_seconds)
+                    self.assertEqual(x["vencimiento_utc"], end.isoformat())
+                    entry_time = T+timedelta(seconds=10)
+                    entered = instance.tick(
+                        market(entry_time, price=151.2), analysis(), now=entry_time)
+                    self.assertEqual(entered["estado"], "EN_SEGUIMIENTO")
+                    almost_end = end-timedelta(seconds=1)
+                    before = instance.tick(
+                        market(almost_end, price=151.4), analysis(), now=almost_end)
+                    self.assertEqual(before["estado"], "EN_SEGUIMIENTO")
+                    self.assertIsNone(before["hipotesis_activa"]["precio_salida"])
+                    after = instance.tick(market(end, price=151.5), analysis(), now=end)
+                    self.assertEqual(after["ultima_hipotesis"]["resultado"], "ACIERTO")
+                    self.assertEqual(
+                        after["estadisticas_por_duracion"][str(expiry_seconds)]["aciertos"], 1)
 
     def test_fallo_baja_y_no_evaluable_when_missing_quote(self):
         with patch("nvda_demo_v5.proponer_hipotesis", return_value={
@@ -189,7 +226,9 @@ class DemoNVDAEngineTests(unittest.TestCase):
     def test_ui_has_v5_countdown_voice_and_results(self):
         ui = (Path(__file__).resolve().parents[1]/"ui"/"live.html").read_text(encoding="utf-8")
         for text in ("v5demo-direction", "v5demo-countdown", "v5demo-accuracy",
-                     "/api/v5/demo", "v5demo-voice", "ENTRADA SIMULADA AHORA"):
+                     "v5demo-expiry-countdown", "Vencimiento desde la entrada",
+                     "Cuenta previa para entrar", "/api/v5/demo",
+                     "v5demo-voice", "ENTRADA SIMULADA AHORA"):
             self.assertIn(text, ui)
         self.assertEqual(ui.count("</script>"), 2)
         self.assertEqual(ui.count("setInterval(fetchSimulation,2000);"), 1)
