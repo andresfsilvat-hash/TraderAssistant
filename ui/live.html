@@ -51,7 +51,7 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
 /* V5 demo: panel principal de hipótesis de NVIDIA observadas en IEX */
 .v5Demo{background:var(--panel);border:1px solid #43516d;border-radius:8px;margin-bottom:9px;padding:10px 13px}
 .v5DemoHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#d6e8ff;font-size:12px;font-weight:700}
-.v5DemoGrid{display:grid;grid-template-columns:1.1fr 1fr .75fr .7fr 1.25fr;gap:12px;align-items:center;margin-top:9px}
+.v5DemoGrid{display:grid;grid-template-columns:1.1fr .85fr .85fr .85fr .75fr 1.25fr;gap:12px;align-items:center;margin-top:9px}
 .v5DemoKey{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
 .v5DemoValue{font-size:20px;font-weight:750;margin-top:3px;font-variant-numeric:tabular-nums}
 .v5DemoValue.bull{color:var(--green)}.v5DemoValue.bear{color:var(--red)}
@@ -192,15 +192,16 @@ button.active{background:#2261b8;color:#fff;border-color:#327feb}
     </div>
     <div class="v5DemoGrid">
       <div><div class="v5DemoKey">Aviso experimental</div><div class="v5DemoValue" id="v5demo-direction">ESPERAR</div></div>
-      <div><div class="v5DemoKey">Cuenta regresiva</div><div class="v5DemoValue" id="v5demo-countdown">—</div></div>
-      <div><div class="v5DemoKey">Duración propuesta</div><div class="v5DemoValue" id="v5demo-duration">—</div></div>
+      <div><div class="v5DemoKey">Cuenta previa para entrar</div><div class="v5DemoValue" id="v5demo-countdown">—</div></div>
+      <div><div class="v5DemoKey">Vencimiento desde la entrada</div><div class="v5DemoValue" id="v5demo-duration">—</div></div>
+      <div><div class="v5DemoKey">Resta para vencer (simulación)</div><div class="v5DemoValue" id="v5demo-expiry-countdown">—</div></div>
       <div><div class="v5DemoKey">Confluencia técnica*</div><div class="v5DemoValue" id="v5demo-strength">—</div></div>
       <div><div class="v5DemoKey">Aciertos observados IEX*</div><div class="v5DemoValue" id="v5demo-accuracy">Sin muestra</div></div>
     </div>
     <div class="v5DemoFoot" id="v5demo-evidence">Esperando una vela oficial cerrada y cotización reciente de NVDA.</div>
     <div class="v5DemoFoot" id="v5demo-outcome">Todavía no hay hipótesis evaluadas.</div>
     <div class="v5DemoFoot" id="v5demo-by-duration">Resultados por duración: sin muestra.</div>
-    <div class="v5DemoFoot">*Confluencia: concordancia de indicadores, NO probabilidad de ganar. Aciertos: precios medios bid/ask IEX observados, NO resultados ni pagos de IQ Option. Solo simulación.</div>
+    <div class="v5DemoFoot">Los 10 segundos son para prepararte; el vencimiento comienza al llegar a la entrada simulada. En IQ Option el tiempo real depende del clic y las reglas de la plataforma. *Confluencia: concordancia de indicadores, NO probabilidad de ganar. Aciertos: precios medios bid/ask IEX observados, NO resultados ni pagos de IQ Option. Solo simulación.</div>
   </section>
   <details class="v4compare">
     <summary>Ver motor conservador anterior V4 (comparación; puede indicar ESPERAR)</summary>
@@ -915,11 +916,13 @@ function paintV5Countdown(){
  if(!data)return;
  if(Date.now()-v5DemoLastResponse>2500){
    $('v5demo-countdown').textContent='DATOS DETENIDOS';
+   $('v5demo-expiry-countdown').textContent='SIN DATOS';
    return;
  }
  const item=data.hipotesis_activa;
  if(!item){
    $('v5demo-countdown').textContent='—';
+   $('v5demo-expiry-countdown').textContent='—';
    return;
  }
  const at=Date.parse(item.entrada_programada_utc||'');
@@ -940,6 +943,15 @@ function paintV5Countdown(){
  }else{
     $('v5demo-countdown').textContent='Resultado pendiente';
  }
+ // El reloj de vencimiento empieza al llegar a la entrada, no al avisar 10s antes.
+ // Sigue siendo una simulación IEX; IQ Option inicia su vencimiento con el clic.
+ if(remain>0){
+    $('v5demo-expiry-countdown').textContent='No iniciado';
+ }else if(Number.isFinite(expiration)){
+    $('v5demo-expiry-countdown').textContent=Math.max(0,Math.ceil((expiration-Date.now())/1000))+' s';
+ }else{
+    $('v5demo-expiry-countdown').textContent='—';
+ }
  if(remain<=0&&remain>=-1&&v5DemoEntrySpoken!==item.id){
     v5DemoEntrySpoken=item.id;
     sayV5('Entrada simulada ahora. '+(item.direccion==='SUBE'?'Sube':'Baja')+
@@ -954,6 +966,7 @@ function paintV5Demo(data){
  if(activeSymbol!=='NVDA'){
    $('v5demo-direction').textContent='SOLO NVIDIA';
    $('v5demo-countdown').textContent='—';
+   $('v5demo-expiry-countdown').textContent='—';
    $('v5demo-duration').textContent='—';
    $('v5demo-strength').textContent='—';
    $('v5demo-evidence').textContent='Este ensayo no utiliza los demás activos.';
@@ -965,7 +978,7 @@ function paintV5Demo(data){
    'Sin muestra':stats.tasa_acierto_pct+' % ('+stats.aciertos+'/'+(stats.aciertos+stats.fallos)+')';
  const byDuration=data.estadisticas_por_duracion||{};
  $('v5demo-by-duration').textContent='Aciertos por duración IEX (sin empates): '+
-  [30,60,120,300,600].map(seconds=>{
+  [30,45,60,120,180,300,600].map(seconds=>{
     const item=byDuration[String(seconds)]||{};
     const total=(item.aciertos||0)+(item.fallos||0);
     return durationV5(seconds)+': '+
