@@ -48,6 +48,9 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.path = Path(self.tmp.name)/"demo.json"
         self.demo = NVDADemoService(path=self.path)
+        # La selección expresa del usuario es requisito en la app. Los
+        # ensayos existentes usan 2 minutos como elección del usuario ficticio.
+        self.demo.configurar_vencimiento(120)
 
     def test_propose_signal_even_when_conservative_waits(self):
         a = analysis()
@@ -56,7 +59,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertTrue(out["disponible"])
         self.assertEqual(out["direccion"], "SUBE")
         self.assertGreaterEqual(out["puntaje_concordancia"], 50)
-        self.assertEqual(out["duracion_segundos"], 600)
+        self.assertIsNone(out["duracion_segundos"])  # el motor no elige duración
         self.assertNotIn("probabilidad", out)
 
     def test_10s_frozen_schedule_and_no_duplicate_from_poll(self):
@@ -95,8 +98,8 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(final["ultima_hipotesis"]["resultado"], "ACIERTO")
         self.assertEqual(final["estadisticas"]["tasa_acierto_pct"], 100)
         self.assertEqual(final["estadisticas"]["aciertos"], 1)
-        self.assertEqual(final["estadisticas_por_duracion"]["600"]["aciertos"], 1)
-        self.assertEqual(final["estadisticas_por_duracion"]["600"]["tasa_acierto_pct"], 100)
+        self.assertEqual(final["estadisticas_por_duracion"]["120"]["aciertos"], 1)
+        self.assertEqual(final["estadisticas_por_duracion"]["120"]["tasa_acierto_pct"], 100)
         self.assertEqual(final["estadisticas_por_duracion"]["30"]["tasa_acierto_pct"], None)
         self.assertIn("bid_entrada", final["ultima_hipotesis"])
         self.assertIn("ask_salida", final["ultima_hipotesis"])
@@ -107,6 +110,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
             with self.subTest(expiry_seconds=expiry_seconds):
                 instance = NVDADemoService(
                     path=Path(self.tmp.name)/f"test_{expiry_seconds}.json")
+                instance.configurar_vencimiento(expiry_seconds)
                 candidate = {"disponible": True, "vela_id": BAR, "direccion": "SUBE",
                              "duracion_segundos": expiry_seconds, "puntaje_concordancia": 63,
                              "evidencias": [], "peso_favor": 4, "peso_contra": 3}
@@ -135,6 +139,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
                         after["estadisticas_por_duracion"][str(expiry_seconds)]["aciertos"], 1)
 
     def test_fallo_baja_y_no_evaluable_when_missing_quote(self):
+        self.demo.configurar_vencimiento(60)
         with patch("nvda_demo_v5.proponer_hipotesis", return_value={
             "disponible": True, "vela_id": BAR, "direccion": "BAJA",
             "duracion_segundos": 60, "puntaje_concordancia": 55, "evidencias": [],
@@ -148,6 +153,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(result["estadisticas"]["tasa_acierto_pct"], 0)
 
         second = NVDADemoService(path=Path(self.tmp.name)/"second.json")
+        second.configurar_vencimiento(60)
         with patch("nvda_demo_v5.proponer_hipotesis", return_value={
             "disponible": True, "vela_id": BAR, "direccion": "SUBE",
             "duracion_segundos": 60, "puntaje_concordancia": 55, "evidencias": [],
@@ -172,6 +178,9 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertEqual(first["hipotesis_activa"]["duracion_segundos"], 120)
         original_id = first["hipotesis_activa"]["id"]
         original_expiry = T + timedelta(seconds=130)
+        # El usuario cambia a 30s durante la operación de 2 minutos.
+        # La selección nueva NO acorta el vencimiento vigente.
+        self.demo.configurar_vencimiento(30)
 
         # El feed falla después del clic hipotético. Antes, el motor marcaba
         # NO_EVALUABLE y permitía otro aviso sobre la siguiente vela de 1m.
@@ -251,6 +260,85 @@ class DemoNVDAEngineTests(unittest.TestCase):
         self.assertIsNone(result["hipotesis_activa"])
         self.assertEqual(result["estadisticas"]["total_hipotesis"], 1)
 
+    def test_sin_seleccion_manual_no_crea_senal(self):
+        unconfigured = NVDADemoService(path=Path(self.tmp.name)/"unset.json")
+        out = unconfigured.tick(market(), analysis(), now=T)
+        self.assertIsNone(out["vencimiento_seleccionado_segundos"])
+        self.assertEqual(out["estado"], "ESPERAR")
+        self.assertEqual(out["estadisticas"]["total_hipotesis"], 0)
+        self.assertIsNone(out["hipotesis_activa"])
+        self.assertIn("Selecciona primero", out["candidato_actual"]["motivo"])
+        self.assertEqual(out["opciones_vencimiento_segundos"], [30, 45, 60, 120, 180, 300])
+
+    def test_configuracion_persistida_y_todos_los_vencimientos_iq(self):
+        for duration in (30, 45, 60, 120, 180, 300):
+            with self.subTest(duration=duration):
+                test_path = Path(self.tmp.name)/f"expiry_{duration}.json"
+                instance = NVDADemoService(path=test_path)
+                saved = instance.configurar_vencimiento(duration)
+                self.assertEqual(saved["vencimiento_seleccionado_segundos"], duration)
+                self.assertEqual(saved["aplica_desde"], "SIGUIENTE_HIPOTESIS")
+                restored = NVDADemoService(path=test_path)
+                self.assertEqual(restored.vencimiento_seleccionado_segundos, duration)
+                new = restored.tick(market(), analysis(), now=T)
+                self.assertEqual(new["hipotesis_activa"]["duracion_segundos"], duration)
+                self.assertEqual(new["hipotesis_activa"]["origen_vencimiento"], "SELECCION_MANUAL_USUARIO")
+                self.assertEqual(new["hipotesis_activa"]["vencimiento_utc"],
+                                 (T+timedelta(seconds=10+duration)).isoformat())
+
+    def test_configuracion_invalida_rechazada_y_no_afecta_valor_guardado(self):
+        for invalid in (None, "", 0, 15, 90, 600, True, 30.0, "30", [], {}):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    self.demo.configurar_vencimiento(invalid)
+                self.assertEqual(self.demo.vencimiento_seleccionado_segundos, 120)
+
+    def test_cambiar_vencimiento_durante_entrada_no_reprograma_operacion(self):
+        first = self.demo.tick(market(), analysis(), now=T)
+        x = first["hipotesis_activa"]
+        self.assertEqual(x["duracion_segundos"], 120)
+        expiry = x["vencimiento_utc"]
+        config = self.demo.configurar_vencimiento(30)
+        self.assertEqual(config["vencimiento_seleccionado_segundos"], 30)
+        ongoing = self.demo.tick(market(T+timedelta(seconds=20)), analysis(),
+                                 now=T+timedelta(seconds=20))
+        self.assertEqual(ongoing["hipotesis_activa"]["duracion_segundos"], 120)
+        self.assertEqual(ongoing["hipotesis_activa"]["vencimiento_utc"], expiry)
+        self.assertEqual(ongoing["vencimiento_seleccionado_segundos"], 30)
+        self.assertEqual(ongoing["estadisticas"]["total_hipotesis"], 1)
+
+    def test_endpoint_post_configuracion_explicita(self):
+        class Mock:
+            def __init__(self, value):
+                self.value = value
+            def snapshot(self):
+                return self.value
+        app = Flask(__name__)
+        app.extensions["live_analysis"] = Mock(analysis())
+        demo = NVDADemoService(path=Path(self.tmp.name)/"setting_http.json", when=lambda: T)
+        register_nvda_demo_v5(app, service=demo, feed=Mock(market()))
+        client = app.test_client()
+        no_setting = client.get("/api/v5/demo").json
+        self.assertIsNone(no_setting["hipotesis_activa"])
+        self.assertIsNone(no_setting["vencimiento_seleccionado_segundos"])
+        for invalid in ({"vencimiento_segundos": 600},
+                        {"vencimiento_segundos": "30"},
+                        {"vencimiento_segundos": True},
+                        {"vencimiento_segundos": 30.0},
+                        {"vencimiento_segundos": None},
+                        {"otras_claves": 120}, ["120"]):
+            with self.subTest(invalid=invalid):
+                self.assertEqual(
+                    client.post("/api/v5/demo/vencimiento", json=invalid).status_code, 400)
+        ok = client.post("/api/v5/demo/vencimiento", json={"vencimiento_segundos": 45})
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.json["vencimiento_seleccionado_segundos"], 45)
+        self.assertEqual(ok.headers["Cache-Control"], "no-store")
+        started = client.get("/api/v5/demo").json
+        self.assertEqual(started["hipotesis_activa"]["duracion_segundos"], 45)
+        self.assertEqual(started["modo_vencimiento"], "SELECCION_MANUAL_USUARIO")
+        self.assertEqual(client.get("/api/v5/demo/vencimiento").status_code, 405)
+
     def test_no_synthetic_market_or_historical_signal(self):
         self.assertFalse(proponer_hipotesis(market(is_open=False), analysis(),
                                             ahora_utc=T)["disponible"])
@@ -293,6 +381,7 @@ class DemoNVDAEngineTests(unittest.TestCase):
         app = Flask(__name__)
         app.extensions["live_analysis"] = Mock(analysis())
         demo = NVDADemoService(path=Path(self.tmp.name)/"http.json", when=lambda: T)
+        demo.configurar_vencimiento(120)
         register_nvda_demo_v5(app, service=demo, feed=Mock(market()))
         response = app.test_client().get("/api/v5/demo")
         self.assertEqual(response.status_code, 200)
@@ -319,7 +408,8 @@ class DemoNVDAEngineTests(unittest.TestCase):
     def test_ui_has_v5_countdown_voice_and_results(self):
         ui = (Path(__file__).resolve().parents[1]/"ui"/"live.html").read_text(encoding="utf-8")
         for text in ("v5demo-direction", "v5demo-countdown", "v5demo-accuracy",
-                     "v5demo-expiry-countdown", "Vencimiento desde la entrada",
+                     "v5demo-expiry-countdown", "v5demo-expiry-select",
+                     "/api/v5/demo/vencimiento", "Vencimiento desde la entrada",
                      "Cuenta previa para entrar", "SIN NUEVA ENTRADA",
                      "bloqueo_vencimiento", "/api/v5/demo",
                      "v5demo-voice", "ENTRADA SIMULADA AHORA"):
