@@ -20,7 +20,7 @@ from flask import jsonify
 
 # Fuera del repositorio: git stash/pull nunca borra el histórico de hipótesis.
 DATA_FILE = Path.home() / "Documents" / "TraderAssistant" / "registro_nvda_v5.json"
-DURATIONS = (30, 60, 120, 300, 600)
+DURATIONS = (30, 45, 60, 120, 180, 300, 600)
 ENTRY_DELAY_SECONDS = 10
 OBSERVATION_GRACE_SECONDS = 6
 CANDLE_MAX_AGE_SECONDS = 150
@@ -158,10 +158,12 @@ def proponer_hipotesis(market, analysis, *, ahora_utc):
     # Mayor concordancia => se ensaya horizonte más largo. NO es ranking
     # optimizado de duración ni tiene respaldo estadístico. Toda duración es
     # hipótesis causal prospectiva que contrastaremos después con datos IEX.
-    duration = (600 if strength >= 95 else
-                300 if strength >= 85 else
-                120 if strength >= 70 else
-                60 if strength >= 55 else 30)
+    duration = (600 if strength >= 98 else
+                300 if strength >= 93 else
+                180 if strength >= 85 else
+                120 if strength >= 75 else
+                60 if strength >= 65 else
+                45 if strength >= 55 else 30)
     return {"disponible": True, "motivo": "Hipótesis mecánica para medir, no validada.",
             "direccion": direction, "duracion_segundos": duration,
             "puntaje_concordancia": strength, "peso_favor": in_favor,
@@ -208,11 +210,17 @@ class NVDADemoService:
 
     def _create(self, candidate, now):
         target = now + timedelta(seconds=ENTRY_DELAY_SECONDS)
+        # La cuenta para entrar termina EN target. El vencimiento arranca
+        # EN target, no cuando se empieza a contar 10, 9, 8...
+        expiry = target + timedelta(seconds=candidate["duracion_segundos"])
         x = {
             "id": str(uuid.uuid4()), "simbolo": "NVDA", "version": ALGORITHM,
             "vela_id": candidate["vela_id"],
             "creada_utc": _ts(now), "entrada_programada_utc": _ts(target),
-            "vencimiento_utc": _ts(target + timedelta(seconds=candidate["duracion_segundos"])),
+            "inicio_vencimiento_utc": _ts(target),
+            "vencimiento_utc": _ts(expiry),
+            "espera_entrada_segundos": ENTRY_DELAY_SECONDS,
+            "tiempo_vencimiento_segundos": candidate["duracion_segundos"],
             "direccion": candidate["direccion"],
             "duracion_segundos": candidate["duracion_segundos"],
             "puntaje_concordancia": candidate["puntaje_concordancia"],
@@ -346,7 +354,11 @@ class NVDADemoService:
                       "operativa_autorizada": False, "modo": "SIMULACION_IEX",
                       "aviso": "SOLO PRUEBA; NO es precio/vencimiento IQ Option. "
                                "Puntuación 0–100 de confluencia NO es probabilidad.",
-                      "reloj_servidor_utc": _ts(now)}
+                      "reloj_servidor_utc": _ts(now),
+                      "descripcion_temporal": "La cuenta previa (10 segundos) termina "
+                          "al llegar a la entrada simulada. El vencimiento empieza "
+                          "en esa entrada y dura los segundos indicados; en IQ Option "
+                          "el vencimiento real depende del clic y reglas de la plataforma."}
             return result
 
 
