@@ -1,3 +1,11 @@
+## Ronda 14 — Separación estricta: cuenta antes de entrar vs. vencimiento de IQ Option (2026-11-26)
+
+El usuario compartió una captura de IQ Option mostrando tiempos de **vencimiento** 30s, 45s, 1m, 2m, 3m y 5m. Aclaró que el aviso de entrada de 10 segundos pertenece exclusivamente a TraderAssistant; tras pulsar SUBE/BAJA, se espera el tiempo de vencimiento seleccionado para saber si acertó. **No se deben sumar los 10 segundos al vencimiento de la plataforma.**
+
+La simulación V5 ya anclaba internamente el vencimiento a `entrada_programada_utc + duracion_segundos`. Ahora se expresa de forma explícita con `espera_entrada_segundos=10`, `inicio_vencimiento_utc=entrada_programada_utc` y `tiempo_vencimiento_segundos`; la UI separa «Cuenta previa para entrar», «Vencimiento desde la entrada» y «Resta para vencer (simulación)». Se ampliaron las duraciones de estudio para incluir 45 segundos y 3 minutos, conservando la anterior hipótesis de 10 minutos como ensayo únicamente si el instrumento realmente permite esa opción. El cálculo de duraciones es heurístico, no validado.
+
+Ejemplo: aviso 11:59:50, entrada simulada 12:00:00, vencimiento 30s a las 12:00:30. **La cuenta en IQ Option empieza al clic real**, que podría ocurrir más tarde y no está comunicado a TraderAssistant; sin un registro del clic, el resultado `IEX_MID_BID_ASK_PROXY` es solo comparación de su propio instante hipotético, nunca un resultado verificado de IQ Option. Tests unitarios recorren 30s, 45s y 180s y comprueban que NO se liquida al instante del aviso ni antes del vencimiento.
+
 ## Ronda 13 — NVIDIA, demostración prospectiva de señal +10 s y aciertos IEX (2026-11-24)
 
 **Requerimiento explícito:** dejar de bloquear cada decisión por ausencia de confluencia estricta; emitir desde NVIDIA una hipótesis SUBE/BAJA con duración, aviso **«entrada en 10 segundos»**, cuenta regresiva, entrada hipotética y posterior evaluación. El usuario acepta que el motor experimental se equivoque, con la condición de ver qué analizó y cuánto acertó. No se pidió enviar órdenes.
