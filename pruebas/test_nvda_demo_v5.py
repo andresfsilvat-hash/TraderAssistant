@@ -320,7 +320,8 @@ class DemoNVDAEngineTests(unittest.TestCase):
         ui = (Path(__file__).resolve().parents[1]/"ui"/"live.html").read_text(encoding="utf-8")
         for text in ("v5demo-direction", "v5demo-countdown", "v5demo-accuracy",
                      "v5demo-expiry-countdown", "Vencimiento desde la entrada",
-                     "Cuenta previa para entrar", "/api/v5/demo",
+                     "Cuenta previa para entrar", "SIN NUEVA ENTRADA",
+                     "bloqueo_vencimiento", "/api/v5/demo",
                      "v5demo-voice", "ENTRADA SIMULADA AHORA"):
             self.assertIn(text, ui)
         self.assertEqual(ui.count("</script>"), 2)
