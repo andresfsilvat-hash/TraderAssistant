@@ -1,23 +1,36 @@
-# TrueNAS SCALE > Apps > Discover > (...) > Install via YAML.
-# Nombre en pantalla: traderassistant-v5
-# IMPORTANTE: requiere que exista y sea descargable la imagen GHCR.
-# Acceso SOLO desde red local/Tailscale. No abrir puertos WAN/router.
+# TrueNAS SCALE > Apps > Discover > (...) > Install via YAML
+# Name: traderassistant-v5
+#
+# Solo instalar DESPUÉS de colocar Alpaca_key.txt en el dataset privado config.
+# Nunca pegar credenciales en este YAML, GitHub ni el chat.
+# El puerto es accesible desde redes permitidas: NO publicarlo mediante
+# router, Cloudflare Tunnel, sitios web ni reverse proxy público.
 services:
   traderassistant:
     image: ghcr.io/andresfsilvat-hash/traderassistant:v5-development
     container_name: traderassistant-v5
     restart: unless-stopped
+    user: "3000:3000"
     ports:
       - "15174:5174"
     environment:
       TZ: America/Guayaquil
     volumes:
-      # Historial de señales y vencimiento seleccionado: persistentes.
-      - traderassistant_registros:/home/trader/Documents/TraderAssistant
-      # Caché oficial de velas IEX: persistente.
-      - traderassistant_cache:/app/cache
-      # ACTIVAR DESPUÉS de copiar la clave personal a TrueNAS:
-      # - /mnt/TU_POOL/traderassistant/Alpaca_key.txt:/home/trader/Documents/Alpaca_key.txt:ro
+      # Datos de hipótesis, porcentaje y vencimiento seleccionado
+      - type: bind
+        source: /mnt/data_pool/TraderAssistant/registros
+        target: /home/trader/Documents/TraderAssistant
+      # Histórico temporal de velas IEX
+      - type: bind
+        source: /mnt/data_pool/TraderAssistant/cache
+        target: /app/cache
+      # Archivo secreto local: necesita existir ANTES del despliegue
+      - type: bind
+        source: /mnt/data_pool/TraderAssistant/config/Alpaca_key.txt
+        target: /home/trader/Documents/Alpaca_key.txt
+        read_only: true
+        bind:
+          create_host_path: false
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -28,7 +41,3 @@ services:
       timeout: 5s
       start_period: 45s
       retries: 3
-
-volumes:
-  traderassistant_registros:
-  traderassistant_cache:
