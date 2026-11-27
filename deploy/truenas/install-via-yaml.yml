@@ -1,0 +1,34 @@
+# TrueNAS SCALE > Apps > Discover > (...) > Install via YAML.
+# Nombre en pantalla: traderassistant-v5
+# IMPORTANTE: requiere que exista y sea descargable la imagen GHCR.
+# Acceso SOLO desde red local/Tailscale. No abrir puertos WAN/router.
+services:
+  traderassistant:
+    image: ghcr.io/andresfsilvat-hash/traderassistant:v5-development
+    container_name: traderassistant-v5
+    restart: unless-stopped
+    ports:
+      - "15174:5174"
+    environment:
+      TZ: America/Guayaquil
+    volumes:
+      # Historial de señales y vencimiento seleccionado: persistentes.
+      - traderassistant_registros:/home/trader/Documents/TraderAssistant
+      # Caché oficial de velas IEX: persistente.
+      - traderassistant_cache:/app/cache
+      # ACTIVAR DESPUÉS de copiar la clave personal a TrueNAS:
+      # - /mnt/TU_POOL/traderassistant/Alpaca_key.txt:/home/trader/Documents/Alpaca_key.txt:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5174/api/v5/estado', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+
+volumes:
+  traderassistant_registros:
+  traderassistant_cache:
