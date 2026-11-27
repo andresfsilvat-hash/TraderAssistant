@@ -1,0 +1,23 @@
+# Evitar introducir credenciales, caches personales o datos locales en la imagen.
+.git
+.github
+venv
+.venv
+__pycache__
+**/__pycache__
+*.py[cod]
+.env
+.env.*
+**/.env
+**/.env.*
+config.json
+cache
+cache/
+*.tmp
+Alpaca_key.txt
+**/Alpaca_key.txt
+*.zip
+*.sqlite3
+Documents/
+dist/
+build/
