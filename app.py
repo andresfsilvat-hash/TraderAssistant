@@ -23,15 +23,28 @@ app = Flask(__name__, static_folder="ui", static_url_path="")
 from alpaca_live import register_live
 register_live(app)
 
+# V5: lectura cripto 24/7 separada de IEX; solo comienza al abrir /crypto.
+from crypto_live import register_crypto_live
+register_crypto_live(app)
+
 # Read-only technical observation over closed official Alpaca candles.
 # Calculations run outside Flask/WebSocket and this route only serves cache.
 from analysis_live import register_live_analysis
 register_live_analysis(app)
 
+# V5: demo NVIDIA independiente. Registra resultados prospectivos IEX
+# a partir de la recepción en esta máquina; sin envío de órdenes.
+from nvda_demo_v5 import register_nvda_demo_v5
+register_nvda_demo_v5(app)
+
 # Read-only view of the independent experimental simulator. No calculations,
 # process management or market connections are performed by this endpoint.
 from simulation_results import register_simulation_results
 register_simulation_results(app)
+
+# V5: estado diagnóstico de solo lectura, sin órdenes ni cambios de UI.
+from v5_diagnostics import register_v5_diagnostics
+register_v5_diagnostics(app)
 
 
 import logging

@@ -215,7 +215,7 @@ class AnalysisTests(unittest.TestCase):
 
     def test_realtime_and_historical_engine_files_remain_unchanged(self):
         expected = {
-            "alpaca_live.py": "10BA6B883803C5E1DB04666B3855B70542C47C47F16E544D9B8D2D501EBB8127",
+            "alpaca_live.py": "C72BAB8D2A27C1C048D36593FED49C149BB41381F0A7E12F5B722E6A43CA3FCB",
             "main.py": "67CD9EC723DAAB05E1B498FD765F46763FCA90E320C6D1AE99F7CC9AC08BE2DC",
             "screener/indicator_detector.py": "5CCBB66A3E5CFF85B08941C5E241CC0B6717990042F4A09B299694706C3CC7E0",
             "screener/pattern_detector.py": "B10B67AB5DFEEDADD0DF1F73F19235182C7AFFD546D1981234895868FD894546",

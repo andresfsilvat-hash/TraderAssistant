@@ -1,0 +1,46 @@
+# TrueNAS SCALE > Apps > Discover > (...) > Install via YAML
+# Name: traderassistant-v5
+#
+# Solo instalar DESPUÉS de colocar Alpaca_key.txt en el dataset privado config.
+# TrueNAS: id traderassistant confirmó UID 1000 y GID 3001.
+# Los datasets TraderAssistant y subdatasets deben pertenecer al UID 1000
+# con permisos 700 para que el contenedor pueda atravesarlos y escribir.
+# Nunca pegar credenciales en este YAML, GitHub ni el chat.
+# El puerto es accesible desde redes permitidas: NO publicarlo mediante
+# router, Cloudflare Tunnel, sitios web ni reverse proxy público.
+services:
+  traderassistant:
+    image: ghcr.io/andresfsilvat-hash/traderassistant:v5-development
+    container_name: traderassistant-v5
+    restart: unless-stopped
+    user: "1000:3001"
+    ports:
+      - "15174:5174"
+    environment:
+      TZ: America/Guayaquil
+    volumes:
+      # Datos de hipótesis, porcentaje y vencimiento seleccionado
+      - type: bind
+        source: /mnt/data_pool/TraderAssistant/registros
+        target: /home/trader/Documents/TraderAssistant
+      # Histórico temporal de velas IEX
+      - type: bind
+        source: /mnt/data_pool/TraderAssistant/cache
+        target: /app/cache
+      # Archivo secreto local: necesita existir ANTES del despliegue
+      - type: bind
+        source: /mnt/data_pool/TraderAssistant/config/Alpaca_key.txt
+        target: /home/trader/Documents/Alpaca_key.txt
+        read_only: true
+        bind:
+          create_host_path: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5174/api/v5/estado', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3

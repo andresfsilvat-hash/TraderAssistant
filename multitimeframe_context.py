@@ -141,12 +141,30 @@ def build_multitimeframe_context(live_frame, *, as_of=None, project_root=None):
         daily.index = pd.to_datetime(daily.index, utc=True)
 
     hour_payload = _trend_payload(hourly, required=20)
-    day_payload = _trend_payload(daily, required=DAILY_SMA_PERIOD, sma_period=DAILY_SMA_PERIOD)
+    # El trend diario se calcula frente a SMA20; SMA50 se publica por separado.
+    # Antes se usaba SMA50 como SMA20 y la pendiente quedaba NaN con 50-52 sesiones.
+    day_payload = _trend_payload(daily, required=DAILY_SMA_PERIOD,
+                                 sma_period=TREND_SMA_PERIOD)
     if day_payload["status"] == "sufficient":
         last_close = float(daily["Close"].iloc[-1])
         sma50 = float(daily["Close"].tail(DAILY_SMA_PERIOD).mean())
         day_payload["sma50"] = round(sma50, 6)
         day_payload["sma50_position"] = "above" if last_close > sma50 else "below" if last_close < sma50 else "equal"
+
+        # Validación de escala del histórico frente al precio reciente de la
+        # misma fuente. Un salto >20% puede deberse a ajuste/split, CSV corrupto
+        # o mercado extraordinario: NO inferimos cuál. Se bloquea sólo el
+        # contexto diario hasta investigar; nunca se corrigen precios a ojo.
+        recent_close = float(regular["Close"].iloc[-1])
+        divergence = abs(last_close / recent_close - 1) if recent_close > 0 else float("inf")
+        day_payload["desviacion_frente_ultimo_precio_pct"] = round(divergence * 100, 3)
+        if divergence > 0.20:
+            day_payload = _insufficient(
+                "ALERTA_CALIDAD: cierre diario y último precio difieren más de 20%; "
+                "verificar ajustes, continuidad y fuente antes de usar contexto diario.",
+                len(daily), DAILY_SMA_PERIOD)
+            day_payload["quality_flag"] = "PRICE_SCALE_MISMATCH"
+            day_payload["desviacion_frente_ultimo_precio_pct"] = round(divergence * 100, 3)
     return {
         "status": "sufficient" if hour_payload["status"] == "sufficient" else "partial",
         "as_of": cutoff.isoformat(), "future_rows_used": 0,
