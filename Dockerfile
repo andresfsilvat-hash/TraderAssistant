@@ -12,8 +12,8 @@ RUN python -m pip install --no-cache-dir -r /app/requirements-server.txt
 COPY . /app/
 # La lista local es privada en Windows, así que creamos una por defecto.
 RUN printf '%s\n' '{"tickers":["NVDA"]}' > /app/config.json \
-    && groupadd --gid 1000 trader \
-    && useradd --uid 1000 --gid 1000 --create-home trader \
+    && groupadd --gid 3000 trader \
+    && useradd --uid 3000 --gid 3000 --create-home trader \
     && mkdir -p /app/cache /home/trader/Documents/TraderAssistant \
     && chown -R trader:trader /app /home/trader
 
