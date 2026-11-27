@@ -2,6 +2,9 @@
 # Name: traderassistant-v5
 #
 # Solo instalar DESPUÉS de colocar Alpaca_key.txt en el dataset privado config.
+# TrueNAS: id traderassistant confirmó UID 1000 y GID 3001.
+# Los datasets TraderAssistant y subdatasets deben pertenecer al UID 1000
+# con permisos 700 para que el contenedor pueda atravesarlos y escribir.
 # Nunca pegar credenciales en este YAML, GitHub ni el chat.
 # El puerto es accesible desde redes permitidas: NO publicarlo mediante
 # router, Cloudflare Tunnel, sitios web ni reverse proxy público.
@@ -10,7 +13,7 @@ services:
     image: ghcr.io/andresfsilvat-hash/traderassistant:v5-development
     container_name: traderassistant-v5
     restart: unless-stopped
-    user: "3000:3000"
+    user: "1000:3001"
     ports:
       - "15174:5174"
     environment:
