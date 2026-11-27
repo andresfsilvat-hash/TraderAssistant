@@ -1,0 +1,41 @@
+name: TrueNAS - Construir imagen TraderAssistant V5
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [v5-development]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'requirements-server.txt'
+      - 'server_truenas.py'
+      - '.github/workflows/truenas-image.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Leer código de v5-development
+        uses: actions/checkout@v4
+      - name: Autenticarse en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Construir contenedor Linux amd64
+        run: |
+          docker build --pull -t ghcr.io/andresfsilvat-hash/traderassistant:v5-development .
+      - name: Verificar aplicación Flask sin datos ni claves de Alpaca
+        run: |
+          docker run --rm ghcr.io/andresfsilvat-hash/traderassistant:v5-development \
+            python -c 'from app import app; from nvda_demo_v5 import VENCIMIENTOS_SELECCIONABLES; a=app.test_client(); assert a.get("/live").status_code==200; assert a.get("/crypto").status_code==200; assert a.get("/api/v5/estado").status_code==200; assert len(VENCIMIENTOS_SELECCIONABLES)==6'
+      - name: Publicar versión Docker
+        run: |
+          docker push ghcr.io/andresfsilvat-hash/traderassistant:v5-development
